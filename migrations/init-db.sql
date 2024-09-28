@@ -57,5 +57,6 @@ CREATE TABLE IF NOT EXISTS public.tokens (
     created_at timestamptz NULL,
     updated_at timestamptz NULL
 );
+CREATE INDEX IF NOT EXISTS idx_tokens_token ON public.tokens USING btree (token);                   
 ALTER TABLE public.tokens ADD CONSTRAINT tokens_users_fk FOREIGN KEY (user_id) REFERENCES public.users(id);
 ALTER TABLE public.tokens ADD CONSTRAINT tokens_clients_fk FOREIGN KEY (client_type) REFERENCES public.clients(client_type);

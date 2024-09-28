@@ -26,8 +26,7 @@ func Protected(authService auth.Service) fiber.Handler {
 
 		user, err := authService.ValidateTokenAndGetUser(accessToken)
 		if err != nil {
-			// Daha spesifik hata mesajı
-			return errors.UnauthorizedError("Invalid or expired token", err)
+			return err
 		}
 
 		entity.SetAuthenticatedUser(c, user)

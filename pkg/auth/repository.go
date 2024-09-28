@@ -11,6 +11,7 @@ type Repository interface {
 	RevokeAllOldTokens(userID string) error
 	FindClientBySecret(secret string) (*entity.Client, error)
 	FindTokensByUserID(userID string) (*[]entity.Token, error)
+	IsTokenRevoked(token string) (bool, error)
 	CreateCredentials(credential *entity.Credential) error
 }
 
@@ -64,4 +65,15 @@ func (r *repository) CreateCredentials(credential *entity.Credential) error {
 		return errors.InternalError("Failed to create credentials", err)
 	}
 	return nil
+}
+
+func (r *repository) IsTokenRevoked(token string) (bool, error) {
+	var revoked bool
+	if err := r.db.Model(&entity.Token{}).
+		Where("token = ?", token).
+		Select("revoked").
+		First(&revoked).Error; err != nil {
+		return false, errors.InternalError("Failed to check if token is revoked", err)
+	}
+	return revoked, nil
 }

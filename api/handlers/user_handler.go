@@ -72,7 +72,7 @@ func RegisterAnonymousUser(service user.Service, authService auth.Service) fiber
 			Anonymous: true,
 		}
 
-		if err := service.RegisterUser(user); err != nil {
+		if err := service.RegisterAnonymousUser(user); err != nil {
 			return err
 		}
 

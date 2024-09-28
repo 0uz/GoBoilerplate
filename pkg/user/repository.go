@@ -10,6 +10,7 @@ type Repository interface {
 	FindAll() ([]entity.User, error)
 	FindByEmail(email string) (*entity.User, error)
 	FindById(id string) (*entity.User, error)
+	FindByIdLazy(id string) (*entity.User, error)
 	Create(user *entity.User) error
 }
 
@@ -52,6 +53,19 @@ func (r *repository) FindById(id string) (*entity.User, error) {
 	}
 	return &user, nil
 }
+
+func (r *repository) FindByIdLazy(id string) (*entity.User, error) {
+	var user entity.User
+	err := r.db.Preload("Roles").Where("id = ?", id).First(&user).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.NotFoundError("User not found", err)
+		}
+		return nil, errors.InternalError("Failed to fetch user by ID", err)
+	}
+	return &user, nil
+}
+
 
 func (r *repository) Create(user *entity.User) error {
 	if err := r.db.Create(user).Error; err != nil {

@@ -11,7 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/healthcheck"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
+	// "github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/ouz/gobackend/api/routes"
 	"github.com/ouz/gobackend/config"
@@ -71,15 +71,20 @@ func createFiberApp() *fiber.App {
 func setupMiddlewares(app *fiber.App) {
 	app.Use(cors.New())
 	app.Use(logger.New())
-	app.Use(limiter.New(limiter.Config{
-		Max: 100,
-		LimitReached: func(c *fiber.Ctx) error {
-			return c.Status(fiber.StatusTooManyRequests).JSON(&fiber.Map{
-				"status":  "fail",
-				"message": "You have requested too many in a single time-frame! Please wait another minute!",
-			})
-		},
-	}))
+	// var ConfigDefault = limiter.Config{
+	// 	Max:        10,
+	// 	Expiration: 1 * time.Minute,
+	// 	KeyGenerator: func(c *fiber.Ctx) string {
+	// 		return c.IP()
+	// 	},
+	// 	LimitReached: func(c *fiber.Ctx) error {
+	// 		return c.SendStatus(fiber.StatusTooManyRequests)
+	// 	},
+	// 	SkipFailedRequests: false,
+	// 	SkipSuccessfulRequests: false,
+	// 	LimiterMiddleware: limiter.FixedWindow{},
+	// }
+	// app.Use(limiter.New(ConfigDefault))
 	app.Use(middleware.ClientSecret())
 }
 

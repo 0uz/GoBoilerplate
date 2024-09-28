@@ -47,7 +47,16 @@ func (s *service) ValidateTokenAndGetUser(token string) (*entity.User, error) {
 		return nil, errors.UnauthorizedError("Invalid token claims", nil)
 	}
 
-	user, err := s.userService.FindById(claims.ID)
+	revoked, err := s.repository.IsTokenRevoked(token)
+	if err != nil {
+		return nil, errors.InternalError("Failed to check if token is revoked", err)
+	}
+
+	if revoked {
+		return nil, errors.UnauthorizedError("Token is revoked", nil)
+	}	
+
+	user, err := s.userService.FindByIdLazy(claims.ID)	
 	if err != nil {
 		return nil, errors.NotFoundError("User not found", err)
 	}
