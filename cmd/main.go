@@ -16,10 +16,10 @@ import (
 	"github.com/ouz/gobackend/api/routes"
 	"github.com/ouz/gobackend/config"
 	"github.com/ouz/gobackend/database"
+	"github.com/ouz/gobackend/errors"
 	"github.com/ouz/gobackend/middleware"
 	"github.com/ouz/gobackend/pkg/auth"
 	"github.com/ouz/gobackend/pkg/user"
-	"github.com/ouz/gobackend/util"
 	"gorm.io/gorm"
 )
 
@@ -64,7 +64,7 @@ func run() error {
 func createFiberApp() *fiber.App {
 	return fiber.New(fiber.Config{
 		IdleTimeout:  5 * time.Second,
-		ErrorHandler: util.ErrorHandler,
+		ErrorHandler: errors.ErrorHandler,
 	})
 }
 
