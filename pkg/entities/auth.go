@@ -3,6 +3,7 @@ package entities
 import (
 	"time"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"gorm.io/gorm"
 )
@@ -31,7 +32,6 @@ type Token struct {
 	Token      string    `gorm:"not null"`
 	TokenType  TokenType `gorm:"not null"`
 	Revoked    bool      `gorm:"default:false"`
-	IpAddress  string    `gorm:"not null"`
 	ClientType string    // Foreign key field
 	Client     Client    `gorm:"foreignKey:ClientType;references:ClientType"`
 	UserID     string    // Foreign key field
@@ -59,4 +59,8 @@ type Client struct {
 type TokenClaims struct {
 	jwt.RegisteredClaims
 	ID string `json:"id"`
+}
+
+func GetClientSecret(c *fiber.Ctx) string {
+	return c.Get("x-client-key")
 }

@@ -3,7 +3,6 @@ package auth
 import (
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/ouz/gobackend/config"
 	"github.com/ouz/gobackend/errors"
@@ -14,8 +13,9 @@ import (
 
 type Service interface {
 	ValidateTokenAndGetUser(token string) (*entity.User, error)
-	CreateToken(c *fiber.Ctx, user *entity.User) (*[]entity.Token, error)
+	CreateToken(user *entity.User, clientSecret string) (*[]entity.Token, error)
 	CreateCredentials(user *entity.User, password string) error
+	LogoutUser(user *entity.User) error
 }
 
 type service struct {
@@ -55,7 +55,7 @@ func (s *service) ValidateTokenAndGetUser(token string) (*entity.User, error) {
 	return user, nil
 }
 
-func (s *service) CreateToken(c *fiber.Ctx, user *entity.User) (*[]entity.Token, error) {
+func (s *service) CreateToken(user *entity.User, clientSecret string) (*[]entity.Token, error) {
 	now := time.Now()
 
 	accessToken, err := s.generateToken(user.ID, config.Conf.JWT_ACCESS_EXPIRATION)
@@ -72,14 +72,14 @@ func (s *service) CreateToken(c *fiber.Ctx, user *entity.User) (*[]entity.Token,
 		return nil, errors.InternalError("Failed to revoke old tokens", err)
 	}
 
-	client, err := s.repository.FindClientBySecret("12345")
+	client, err := s.repository.FindClientBySecret(clientSecret)
 	if err != nil {
 		return nil, errors.InternalError("Failed to find client", err)
 	}
 
 	tokens := []entity.Token{
-		s.createTokenEntity(accessToken, entity.ACCESS_TOKEN, user.ID, client.ClientType, c.IP(), now.Add(config.Conf.JWT_ACCESS_EXPIRATION)),
-		s.createTokenEntity(refreshToken, entity.REFRESH_TOKEN, user.ID, client.ClientType, c.IP(), now.Add(config.Conf.JWT_REFRESH_EXPIRATION)),
+		s.createTokenEntity(accessToken, entity.ACCESS_TOKEN, user.ID, client.ClientType, now.Add(config.Conf.JWT_ACCESS_EXPIRATION)),
+		s.createTokenEntity(refreshToken, entity.REFRESH_TOKEN, user.ID, client.ClientType, now.Add(config.Conf.JWT_REFRESH_EXPIRATION)),
 	}
 
 	if err := s.repository.SaveTokenPairs(&tokens); err != nil {
@@ -119,14 +119,21 @@ func (s *service) generateToken(userID string, expiration time.Duration) (string
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(config.Conf.JWT_SECRET))
 }
 
-func (s *service) createTokenEntity(token string, tokenType entity.TokenType, userID, clientType, ipAddress string, expiresAt time.Time) entity.Token {
+func (s *service) createTokenEntity(token string, tokenType entity.TokenType, userID, clientType string, expiresAt time.Time) entity.Token {
 	return entity.Token{
 		Token:      token,
 		TokenType:  tokenType,
 		Revoked:    false,
-		IpAddress:  ipAddress,
 		ClientType: clientType,
 		UserID:     userID,
 		ExpiresAt:  expiresAt,
 	}
+}
+
+func (s *service) LogoutUser(user *entity.User) error {
+	if err := s.repository.RevokeAllOldTokens(user.ID); err != nil {
+		return errors.InternalError("Failed to revoke old tokens", err)
+	}
+
+	return nil
 }

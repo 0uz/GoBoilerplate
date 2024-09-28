@@ -23,8 +23,9 @@ type Config struct {
 var Conf Config
 
 func LoadConfig() error {
-	if err := godotenv.Load(".env"); err != nil {
-		return errors.InternalError("Error loading .env file", err)
+
+	if err := godotenv.Load(); err != nil {
+		fmt.Println("No .env file found, using environment variables")
 	}
 
 	accessExpiration, err := time.ParseDuration(os.Getenv("JWT_ACCESS_EXPIRATION"))

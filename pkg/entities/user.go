@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
 	"time"
@@ -46,4 +47,12 @@ type UserRole struct {
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	u.ID = uuid.New().String()
 	return
+}
+
+func GetAuthenticatedUser(c *fiber.Ctx) *User {
+	return c.Locals("authenticated_user").(*User)
+}
+
+func SetAuthenticatedUser(c *fiber.Ctx, user *User) {
+	c.Locals("authenticated_user", user)
 }

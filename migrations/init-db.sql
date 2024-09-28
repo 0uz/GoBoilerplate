@@ -33,16 +33,18 @@ CREATE TABLE IF NOT EXISTS public.credentials (
     CONSTRAINT credentials_users_fk FOREIGN KEY (user_id) REFERENCES public.users(id)   
 );
 CREATE INDEX IF NOT EXISTS idx_credentials_deleted_at ON public.credentials USING btree (deleted_at);
+CREATE INDEX IF NOT EXISTS idx_credentials_user_id ON public.credentials USING btree (user_id);
 
 CREATE TABLE IF NOT EXISTS public.clients (
     client_type text NOT NULL,
-    client_secret text NOT NULL,
+    client_secret uuid NOT NULL,
     created_at timestamptz NULL,
     updated_at timestamptz NULL,
     deleted_at timestamptz NULL,
     CONSTRAINT clients_pkey PRIMARY KEY (client_type)
 );
 CREATE INDEX IF NOT EXISTS idx_clients_deleted_at ON public.clients USING btree (deleted_at);
+CREATE INDEX IF NOT EXISTS idx_clients_client_secret ON public.clients USING btree (client_secret);
 
 CREATE TABLE IF NOT EXISTS public.tokens (
     id SERIAL PRIMARY KEY,
@@ -51,11 +53,9 @@ CREATE TABLE IF NOT EXISTS public.tokens (
     user_id uuid NOT NULL,
     revoked bool DEFAULT false NULL,
     client_type text NOT NULL,
-    ip_address text NULL,
     expires_at timestamptz NULL,
     created_at timestamptz NULL,
     updated_at timestamptz NULL
 );
 ALTER TABLE public.tokens ADD CONSTRAINT tokens_users_fk FOREIGN KEY (user_id) REFERENCES public.users(id);
 ALTER TABLE public.tokens ADD CONSTRAINT tokens_clients_fk FOREIGN KEY (client_type) REFERENCES public.clients(client_type);
-CREATE INDEX IF NOT EXISTS idx_tokens_deleted_at ON public.tokens USING btree (deleted_at);

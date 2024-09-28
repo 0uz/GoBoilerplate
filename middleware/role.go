@@ -6,19 +6,19 @@ import (
 	entity "github.com/ouz/gobackend/pkg/entities"
 )
 
-func HasRoles(roles ...entity.UserRoleName) fiber.Handler {
+func HasRoles(requiredRoles ...entity.UserRoleName) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		user, ok := c.Locals("authenticated_user").(*entity.User)
-		if !ok {
-			return errors.UnauthorizedError("User not found", nil)
+		user := entity.GetAuthenticatedUser(c)
+		if user == nil {
+			return errors.UnauthorizedError("Authentication required", nil)
 		}
 
-		for _, role := range roles {
+		for _, role := range requiredRoles {
 			if user.HasRole(role) {
 				return c.Next()
 			}
 		}
 
-		return errors.UnauthorizedError("User does not have the required role", nil)
+		return errors.UnauthorizedError("Insufficient permissions", nil)
 	}
 }

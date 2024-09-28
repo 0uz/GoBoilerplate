@@ -41,11 +41,11 @@ func RegisterUser(service user.Service, authService auth.Service) fiber.Handler 
 					Name: entity.UserRoleUser,
 				},
 			},
-			Enabled:  false,
-			Verified: false,
+			Enabled:   false,
+			Verified:  false,
 			Anonymous: false,
 		}
-		
+
 		if err := service.RegisterUser(user); err != nil {
 			return err
 		}
@@ -67,8 +67,8 @@ func RegisterAnonymousUser(service user.Service, authService auth.Service) fiber
 					Name: entity.UserRoleAnonymous,
 				},
 			},
-			Enabled:  true,
-			Verified: true,
+			Enabled:   true,
+			Verified:  true,
 			Anonymous: true,
 		}
 
@@ -88,6 +88,11 @@ func RegisterAnonymousUser(service user.Service, authService auth.Service) fiber
 
 func LoginUser(userService user.Service, authService auth.Service) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		clientSecret := entity.GetClientSecret(c)
+		if clientSecret == "" {
+			return errors.UnauthorizedError("x-client-key header is required", nil)
+		}
+
 		email := c.FormValue("username")
 		password := c.FormValue("password")
 
@@ -117,7 +122,7 @@ func LoginUser(userService user.Service, authService auth.Service) fiber.Handler
 			return errors.UnauthorizedError("Invalid credentials", nil)
 		}
 
-		tokens, err := authService.CreateToken(c, user)
+		tokens, err := authService.CreateToken(user, clientSecret)
 		if err != nil {
 			return errors.AuthError("Failed to create token", err)
 		}
@@ -131,6 +136,11 @@ func LoginUser(userService user.Service, authService auth.Service) fiber.Handler
 
 func RefreshAccessToken(service user.Service, authService auth.Service) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		clientSecret := entity.GetClientSecret(c)
+		if clientSecret == "" {
+			return errors.UnauthorizedError("x-client-key header is required", nil)
+		}
+
 		request := &presenter.RefreshAccessTokenRequest{}
 
 		if err := c.BodyParser(request); err != nil {
@@ -146,7 +156,7 @@ func RefreshAccessToken(service user.Service, authService auth.Service) fiber.Ha
 			return errors.UnauthorizedError("Invalid refresh token", err)
 		}
 
-		tokens, err := authService.CreateToken(c, user)
+		tokens, err := authService.CreateToken(user, clientSecret)
 		if err != nil {
 			return errors.AuthError("Failed to create new tokens", err)
 		}
@@ -155,5 +165,17 @@ func RefreshAccessToken(service user.Service, authService auth.Service) fiber.Ha
 			AccessToken:  (*tokens)[0].Token,
 			RefreshToken: (*tokens)[1].Token,
 		})
+	}
+}
+
+func LogoutUser(authService auth.Service) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		user := entity.GetAuthenticatedUser(c)
+
+		if err := authService.LogoutUser(user); err != nil {
+			return errors.InternalError("Failed to logout user", err)
+		}
+
+		return c.SendStatus(fiber.StatusOK)
 	}
 }

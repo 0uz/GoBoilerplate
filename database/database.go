@@ -1,8 +1,7 @@
 package database
 
 import (
-	"log"
-
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/ouz/gobackend/config"
 	"github.com/ouz/gobackend/errors"
 	"gorm.io/driver/postgres"
@@ -32,7 +31,16 @@ func CloseDatabaseConnection(db *gorm.DB) error {
 		return errors.InternalError("Failed to close database connection", err)
 	}
 
-	log.Println("Database connection closed")
+	log.Info("Database connection closed")
 
 	return nil
+}
+
+func IsReady(db *gorm.DB) bool {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return false
+	}
+
+	return sqlDB.Ping() == nil
 }
