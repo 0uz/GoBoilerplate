@@ -55,7 +55,7 @@ var (
 
 func Load() error {
 	if err := loadEnv(); err != nil {
-		return fmt.Errorf("loading environment variables: %w", err)
+		fmt.Println("loading environment variables: %w", err)
 	}
 
 	config, err := parseConfig()

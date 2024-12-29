@@ -75,3 +75,6 @@ CREATE TABLE IF NOT EXISTS public.user_confirmations (
 );
 CREATE INDEX IF NOT EXISTS idx_user_confirmations_deleted_at ON public.user_confirmations USING btree (deleted_at);
 CREATE INDEX IF NOT EXISTS idx_user_confirmations_user_id ON public.user_confirmations USING btree (user_id);
+
+
+INSERT INTO public.clients (client_type,client_secret,created_at) VALUES ('IOS','01923017-c79e-79cc-8f0a-3f622fccce53'::uuid,'now');

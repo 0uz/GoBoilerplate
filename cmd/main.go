@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -30,12 +31,11 @@ var logger *slog.Logger
 
 func main() {
 	if err := run(); err != nil {
-		logger.Error("Application failed to start", "error", err)
+		log.Fatalf("Application failed to start: %v\n", err)
 	}
 }
 
 func run() error {
-
 	if err := config.Load(); err != nil {
 		return err
 	}
