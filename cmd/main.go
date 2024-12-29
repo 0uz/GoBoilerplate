@@ -2,134 +2,150 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/healthcheck"
-	// "github.com/gofiber/fiber/v2/middleware/limiter"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/ouz/gobackend/api/routes"
-	"github.com/ouz/gobackend/config"
-	"github.com/ouz/gobackend/database"
-	"github.com/ouz/gobackend/errors"
-	"github.com/ouz/gobackend/middleware"
-	"github.com/ouz/gobackend/pkg/auth"
-	"github.com/ouz/gobackend/pkg/user"
+	"github.com/go-redis/redis/v8"
+
+	"github.com/ouz/goauthboilerplate/internal/adapters/api"
+	"github.com/ouz/goauthboilerplate/internal/adapters/api/middleware"
+	redisCache "github.com/ouz/goauthboilerplate/internal/adapters/repo/cache/redis"
+	"github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres"
+
+	repoAuth "github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres/auth"
+	repoUser "github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres/user"
+
+	"github.com/ouz/goauthboilerplate/internal/application/auth"
+	"github.com/ouz/goauthboilerplate/internal/application/user"
+	"github.com/ouz/goauthboilerplate/internal/config"
 	"gorm.io/gorm"
 )
 
+var logger *slog.Logger
+
 func main() {
 	if err := run(); err != nil {
-		log.Fatalf("Application failed to start: %v", err)
+		logger.Error("Application failed to start", "error", err)
 	}
 }
 
 func run() error {
-	if err := config.LoadConfig(); err != nil {
+
+	if err := config.Load(); err != nil {
 		return err
 	}
 
-	db, err := database.ConnectDB()
+	logger = config.NewLogger()
+
+	// Connect postgres database
+	db, err := postgres.ConnectDB()
 	if err != nil {
 		return err
 	}
-	defer database.CloseDatabaseConnection(db)
+	defer postgres.CloseDatabaseConnection(db)
 
-	userRepo := user.NewRepository(db)
-	userService := user.NewService(userRepo)
-	authRepo := auth.NewRepository(db)
-	authService := auth.NewService(authRepo, userService)
-
-	app := createFiberApp()
-	
-	setupHealthChecks(app, db)
-
-	setupMiddlewares(app)
-
-	setupAPIRoutes(app, userService, authService)
-
-	app.Use(notFoundHandler)
-
-	go startServer(app)
-
-	// Graceful shutdown
-	return handleGracefulShutdown(app)
-}
-
-func createFiberApp() *fiber.App {
-	return fiber.New(fiber.Config{
-		IdleTimeout:  5 * time.Second,
-		ErrorHandler: errors.ErrorHandler,
-	})
-}
-
-func setupMiddlewares(app *fiber.App) {
-	app.Use(cors.New())
-	app.Use(logger.New())
-	// var ConfigDefault = limiter.Config{
-	// 	Max:        10,
-	// 	Expiration: 1 * time.Minute,
-	// 	KeyGenerator: func(c *fiber.Ctx) string {
-	// 		return c.IP()
-	// 	},
-	// 	LimitReached: func(c *fiber.Ctx) error {
-	// 		return c.SendStatus(fiber.StatusTooManyRequests)
-	// 	},
-	// 	SkipFailedRequests: false,
-	// 	SkipSuccessfulRequests: false,
-	// 	LimiterMiddleware: limiter.FixedWindow{},
-	// }
-	// app.Use(limiter.New(ConfigDefault))
-	app.Use(middleware.ClientSecret())
-}
-
-func setupHealthChecks(app *fiber.App, db *gorm.DB) {
-	app.Use(healthcheck.New(healthcheck.Config{
-		LivenessProbe: func(c *fiber.Ctx) bool {
-			return true
-		},
-		LivenessEndpoint: "/live",
-		ReadinessProbe: func(c *fiber.Ctx) bool {
-			return database.IsReady(db)
-		},
-		ReadinessEndpoint: "/ready",
-	}))
-}
-
-func setupAPIRoutes(app *fiber.App, userService user.Service, authService auth.Service) {
-	api := app.Group("/api/v1")
-	routes.SetUpUserRoutes(api, userService, authService)
-}
-
-func notFoundHandler(c *fiber.Ctx) error {
-	return c.SendStatus(404)
-}
-
-func startServer(app *fiber.App) {
-	if err := app.Listen(":8080"); err != nil {
-		log.Fatalf("Server error: %v", err)
-	}
-}
-
-func handleGracefulShutdown(app *fiber.App) error {
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-
-	<-quit
-	log.Info("Shutting down server...")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := app.ShutdownWithContext(ctx); err != nil {
+	// Connect redis cache
+	redisClient, err := redisCache.ConnectRedis()
+	if err != nil {
 		return err
 	}
+	defer redisCache.CloseRedisClient(redisClient)
 
-	log.Info("Server gracefully stopped")
+	mainRouter := http.NewServeMux()
+
+	setupHealthChecks(mainRouter, db)
+	setupServiceAndRoutes(mainRouter, db, redisClient)
+	mainRouter = addV1Prefix(mainRouter, logger)
+
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%s", config.Get().App.Port),
+		Handler: mainRouter,
+
+		// timeout
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+
+	go func() {
+		slog.Info("Server is starting", "port", config.Get().App.Port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("Server failed", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
+
+	// Graceful shutdown
+	slog.Info("Server is shutting down...")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		return fmt.Errorf("server shutdown failed: %v", err)
+	}
+
+	slog.Info("Server stopped gracefully")
 	return nil
+}
+
+func addV1Prefix(r *http.ServeMux, logger *slog.Logger) *http.ServeMux {
+	chain := middleware.Chain(
+		middleware.Logging(logger),
+		middleware.Recovery(),
+	)
+	v1 := http.NewServeMux()
+
+	v1.Handle("/api/v1/", chain(http.StripPrefix("/api/v1", r)))
+	return v1
+}
+
+func setupHealthChecks(router *http.ServeMux, db *gorm.DB) {
+	router.HandleFunc("/live", livenessHandler)
+	router.HandleFunc("/ready", readinessHandler(db))
+}
+
+func livenessHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, "Live")
+}
+
+func readinessHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if postgres.IsReady(db) {
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintln(w, "Ready")
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprintln(w, "Not Ready")
+		}
+	}
+}
+
+func setupServiceAndRoutes(mainRouter *http.ServeMux, pgdb *gorm.DB, redisClient *redis.Client) {
+
+	// cache := cache.NewLocalCacheService()
+	redisCache := redisCache.NewRedisCacheService(redisClient)
+	tx := postgres.NewTransactionManager(pgdb)
+
+	userRepo := repoUser.NewUserRepository(pgdb)
+	userService := user.NewUserService(userRepo, redisCache, tx)
+
+	authRepo := repoAuth.NewAuthRepository(pgdb)
+	authService := auth.NewAuthService(authRepo, userService, redisCache)
+
+	authHandler := api.NewAuthHandler(authService)
+	userHandler := api.NewUserHandler(userService)
+
+	api.SetUpUserRoutes(mainRouter, authHandler, userHandler, authService)
+
 }

@@ -1,46 +1,40 @@
+version: '3.8'
+
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
+    container_name: goauthboiler
     ports:
       - "8080:8080"
     depends_on:
-      db:
-        condition: service_healthy
+      - postgres
+      - redis
     environment:
-      DB_HOST: db
-      DB_PORT: ${DB_PORT}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_ACCESS_EXPIRATION: ${JWT_ACCESS_EXPIRATION}
-      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION}
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/ready"]
-      interval: 2s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      - PORT=8080
+      - V1_PREFIX=/api/v1
+      - PG_DB_HOST=postgres
+      - PG_DB_USER=postgres
+      - PG_DB_PASSWORD=postgres
+      - PG_DB_NAME=goauthboiler
+      - PG_DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=your-secret-key
+      - JWT_ACCESS_EXPIRATION=15m
+      - JWT_REFRESH_EXPIRATION=1h
+      - MAIL_HOST=smtp.example.com
+      - MAIL_PORT=587
+      - MAIL_USERNAME=user
+      - MAIL_PASSWORD=pass
+    networks:
+      - goauthboiler-network
 
-  db:
-    image: postgres:latest
-    user: postgres
+  postgres:
+    image: postgres:15-alpine
+    container_name: goauthboiler-postgres
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=goauthboiler
     ports:
-      - "${DB_PORT}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./migrations/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
-    healthcheck:
-      test: "pg_isready -d ${DB_NAME} -U ${DB_USER}"
-      interval: 2s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  postgres_data:
+      - "5432:5432"

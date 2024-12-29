@@ -1,35 +1,38 @@
 # Build stage
-FROM golang:1.22.4-alpine AS builder
+FROM golang:1.23.4-alpine AS builder
 
-# Set the working directory
 WORKDIR /app
 
-# Copy go mod and sum files
-COPY go.mod go.sum ./
+# Install necessary build tools
+RUN apk add --no-cache gcc musl-dev
 
-# Download all dependencies
+# Copy go mod files
+COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy the source code
+# Copy source code
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o goauthboiler cmd/main.go
 
 # Final stage
-FROM alpine:latest  
+FROM alpine:3.19
 
-# Set the working directory
-WORKDIR /root/
+WORKDIR /app
+
+# Install necessary runtime dependencies
+RUN apk add --no-cache ca-certificates tzdata
 
 # Copy the binary from builder
-COPY --from=builder /app/main .
+COPY --from=builder /app/goauthboiler .
+# Copy any required templates/static files
+COPY --from=builder /app/internal/ports/api/template ./internal/ports/api/template
 
-# Copy the .env file
-COPY .env .
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
 
-# Expose port 8080
 EXPOSE 8080
 
-# Command to run the executable
-CMD ["./main"]
+CMD ["./goauthboiler"]
