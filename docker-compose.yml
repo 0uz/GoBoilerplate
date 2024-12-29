@@ -38,3 +38,21 @@ services:
       - POSTGRES_DB=goauthboiler
     ports:
       - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: goauthboiler-redis
+    ports:
+      - "6379:6379"
+    command: redis-server
+    volumes:
+      - redis-data:/data
+    networks:
+      - goauthboiler-network
+
+volumes:
+  redis-data:
+
+networks:
+  goauthboiler-network:
+    driver: bridge

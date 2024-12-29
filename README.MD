@@ -7,6 +7,7 @@ A robust authentication boilerplate built with Go, featuring JWT authentication,
 - JWT-based authentication
 - User registration and login
 - PostgreSQL database integration
+- Redis cache integration for improved performance
 - RESTful API endpoints
 - Secure password hashing
 - Environment variable configuration
@@ -16,27 +17,34 @@ A robust authentication boilerplate built with Go, featuring JWT authentication,
 
 - Go 1.16+
 - PostgreSQL
+- Redis
 - Docker (optional)
 
 ## Setup
 
 1. Set up environment variables (create `.env` file):
 ```bash
+# Server Configuration
 PORT=8080
 V1_PREFIX=/api/v1
+
+# PostgreSQL Configuration
 PG_DB_HOST=localhost
 PG_DB_PORT=5432
 PG_DB_USER=goauthboiler
 PG_DB_PASSWORD=123456
 PG_DB_NAME=postgres
 
+# Redis Configuration
 REDIS_HOST=localhost
 REDIS_PORT=6379
+REDIS_PASSWORD=  # if required
+REDIS_DB=0      # default database
 
+# JWT Configuration
 JWT_SECRET=s3cr3t
 JWT_ACCESS_EXPIRATION=1h
 JWT_REFRESH_EXPIRATION=5h
-
 ```
 
 3. Install dependencies:
