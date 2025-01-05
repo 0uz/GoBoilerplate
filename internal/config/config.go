@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 	"time"
@@ -53,8 +54,8 @@ var (
 	conf *Config
 )
 
-func Load() error {
-	if err := loadEnv(); err != nil {
+func Load(logger *slog.Logger) error {
+	if err := loadEnv(logger); err != nil {
 		fmt.Println("loading environment variables: %w", err)
 	}
 
@@ -75,9 +76,9 @@ func Get() *Config {
 	return conf
 }
 
-func loadEnv() error {
+func loadEnv(logger *slog.Logger) error {
 	if err := godotenv.Load("./.env"); err != nil {
-		fmt.Println("No .env file found, using environment variables")
+		logger.Info("No .env file found, using environment variables")
 	}
 	return nil
 }
@@ -100,8 +101,8 @@ func parseConfig() (*Config, error) {
 
 	return &Config{
 		App: AppConfig{
-			Port:     os.Getenv("PORT"),
-			V1Prefix: os.Getenv("V1_PREFIX"),
+			Port:     getEnvOrDefault("PORT", "8080"),
+			V1Prefix: getEnvOrDefault("V1_PREFIX", "/api/v1"),
 		},
 		Postgres: PostgresDatabaseConfig{
 			Host:     os.Getenv("PG_DB_HOST"),
@@ -158,5 +159,30 @@ func validate(c *Config) error {
 		return errors.ValidationError("MAIL_PORT is not set", nil)
 	}
 
+	
+	if _, err := strconv.Atoi(c.App.Port); err != nil {
+		return errors.ValidationError("invalid PORT", err)
+	}
+
+	if _, err := strconv.Atoi(c.Postgres.Port); err != nil {
+		return errors.ValidationError("invalid PG_DB_PORT", err)
+	}
+
+	if _, err := strconv.Atoi(c.Redis.Port); err != nil {
+		return errors.ValidationError("invalid REDIS_PORT", err)
+	}
+
+	if len(c.JWT.Secret) < 32 {
+		return errors.ValidationError("JWT_SECRET must be at least 32 characters long", nil)
+	}
+
 	return nil
+}
+
+func getEnvOrDefault(key, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
 }

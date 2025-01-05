@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/middleware"
 	redisCache "github.com/ouz/goauthboilerplate/internal/adapters/repo/cache/redis"
 	"github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres"
+	"github.com/ouz/goauthboilerplate/pkg/errors"
 
 	repoAuth "github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres/auth"
 	repoUser "github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres/user"
@@ -30,17 +30,17 @@ import (
 var logger *slog.Logger
 
 func main() {
+	logger = config.NewLogger()
 	if err := run(); err != nil {
-		log.Fatalf("Application failed to start: %v\n", err)
+		logger.Error("Application failed to start", "error", err)
 	}
 }
 
 func run() error {
-	if err := config.Load(); err != nil {
+	if err := config.Load(logger); err != nil {
 		return err
 	}
 
-	logger = config.NewLogger()
 
 	// Connect postgres database
 	db, err := postgres.ConnectDB()
@@ -91,7 +91,7 @@ func run() error {
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		return fmt.Errorf("server shutdown failed: %v", err)
+		return errors.GenericError("server shutdown failed: %v", err)
 	}
 
 	slog.Info("Server stopped gracefully")
