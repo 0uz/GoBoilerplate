@@ -20,10 +20,10 @@ type UserLoginRequest struct {
 }
 
 type TokenResponse struct {
-	AccessToken  string
-	RefreshToken string
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
 }
 
 type AnonymousUserResponse struct {
-	Email string
+	Email string `json:"email"`
 }

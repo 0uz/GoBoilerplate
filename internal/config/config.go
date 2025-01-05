@@ -76,7 +76,7 @@ func Get() *Config {
 }
 
 func loadEnv() error {
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load("./.env"); err != nil {
 		fmt.Println("No .env file found, using environment variables")
 	}
 	return nil

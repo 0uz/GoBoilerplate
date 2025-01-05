@@ -14,8 +14,8 @@ func SetUpUserRoutes(mainRouter *http.ServeMux, authHandler *AuthHandler, userHa
 	userRouter.HandleFunc("GET /confirm", userHandler.ConfirmUser)
 
 	// Public routes with client secret
-	userRouter.Handle("GET /login", middleware.HasClientSecret(http.HandlerFunc(authHandler.LoginUser)))
-	userRouter.Handle("GET /anonymous/login", middleware.HasClientSecret(http.HandlerFunc(authHandler.LoginAnonymousUser)))
+	userRouter.Handle("POST /login", middleware.HasClientSecret(http.HandlerFunc(authHandler.LoginUser)))
+	userRouter.Handle("POST /anonymous/login", middleware.HasClientSecret(http.HandlerFunc(authHandler.LoginAnonymousUser)))
 	userRouter.Handle("POST /register", middleware.HasClientSecret(http.HandlerFunc(userHandler.RegisterUser)))
 	userRouter.Handle("POST /anonymous", middleware.HasClientSecret(http.HandlerFunc(userHandler.RegisterAnonymousUser)))
 	userRouter.Handle("POST /refresh", middleware.HasClientSecret(http.HandlerFunc(authHandler.RefreshAccessToken)))

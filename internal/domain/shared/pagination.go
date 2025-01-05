@@ -3,16 +3,16 @@ package shared
 type Pagination[T any] struct {
 	Limit      int
 	Page       int
-	TotalRows  int64 `json:"total_rows"`
-	TotalPages int   `json:"total_pages"`
+	TotalRows  int64 `json:"totalRows"`
+	TotalPages int   `json:"totalPages"`
 	Data       []T   `json:"data"`
 }
 
 type PaginationResponse struct {
 	Page       int         `json:"page"`
 	Limit      int         `json:"limit"`
-	TotalRows  int64       `json:"total_rows"`
-	TotalPages int         `json:"total_pages"`
+	TotalRows  int64       `json:"totalRows"`
+	TotalPages int         `json:"totalPages"`
 	Data       interface{} `json:"data"`
 }
 

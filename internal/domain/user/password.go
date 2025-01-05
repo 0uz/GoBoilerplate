@@ -1,8 +1,7 @@
 package user
 
 import (
-	"errors"
-
+	"github.com/ouz/goauthboilerplate/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -12,7 +11,7 @@ type Password struct {
 
 func NewPassword(plaintext string) (*Password, error) {
 	if len(plaintext) < 8 {
-		return nil, errors.New("password must be at least 8 characters long")
+		return nil, errors.ValidationError("password must be at least 8 characters long", nil)
 	}
 
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(plaintext), bcrypt.DefaultCost)
