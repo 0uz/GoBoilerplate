@@ -41,7 +41,6 @@ func run() error {
 		return err
 	}
 
-
 	// Connect postgres database
 	db, err := postgres.ConnectDB()
 	if err != nil {
@@ -146,6 +145,7 @@ func setupServiceAndRoutes(mainRouter *http.ServeMux, pgdb *gorm.DB, redisClient
 	authHandler := api.NewAuthHandler(authService)
 	userHandler := api.NewUserHandler(userService)
 
-	api.SetUpUserRoutes(mainRouter, authHandler, userHandler, authService)
+	api.SetUpAuthRoutes(mainRouter, authHandler, userHandler, authService)
+	api.SetUpUserRoutes(mainRouter, userHandler, authService)
 
 }

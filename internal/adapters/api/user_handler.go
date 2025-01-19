@@ -5,8 +5,10 @@ import (
 	"net/http"
 
 	resp "github.com/ouz/goauthboilerplate/internal/adapters/api/response"
+	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/validator"
 	authDto "github.com/ouz/goauthboilerplate/internal/application/auth/dto"
+	userDto "github.com/ouz/goauthboilerplate/internal/application/user/dto"
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
 )
@@ -70,6 +72,17 @@ func (h *UserHandler) ConfirmUser(w http.ResponseWriter, r *http.Request) {
 
 	http.ServeFile(w, r, "internal/ports/api/template/email_confirmation_response.html")
 }
+
+func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	user := util.GetAuthenticatedUser(r)
+
+	resp.JSON(w, http.StatusOK, userDto.UserResponse{
+		ID:    user.ID,
+		Email: user.Email,
+	})
+
+}
+
 
 func returnNotFound(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "internal/ports/api/template/not_found.html")
