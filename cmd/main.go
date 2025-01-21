@@ -98,7 +98,9 @@ func run() error {
 }
 
 func addV1Prefix(r *http.ServeMux, logger *slog.Logger) *http.ServeMux {
+	tokenBucket := middleware.NewTokenBucket(1, 3)
 	chain := middleware.Chain(
+		middleware.RateLimitMiddleware(tokenBucket),
 		middleware.Logging(logger),
 		middleware.Recovery(),
 	)
@@ -131,7 +133,6 @@ func readinessHandler(db *gorm.DB) http.HandlerFunc {
 }
 
 func setupServiceAndRoutes(mainRouter *http.ServeMux, pgdb *gorm.DB, redisClient *redis.Client) {
-
 	// cache := cache.NewLocalCacheService()
 	redisCache := redisCache.NewRedisCacheService(redisClient)
 	tx := postgres.NewTransactionManager(pgdb)
