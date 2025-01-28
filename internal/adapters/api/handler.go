@@ -43,5 +43,5 @@ func SetUpUserRoutes(mainRouter *http.ServeMux, userHandler *UserHandler, userAu
 	)
 	userRouter.Handle("GET /me", protectedUser(http.HandlerFunc(userHandler.GetUser)))
 
-	mainRouter.Handle("/user/", http.StripPrefix("/user", userRouter)) // Prefix all user routes with /user
+	mainRouter.Handle("/users/", http.StripPrefix("/users", userRouter)) // Prefix all user routes with /user
 }

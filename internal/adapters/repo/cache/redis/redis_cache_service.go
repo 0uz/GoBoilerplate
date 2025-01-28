@@ -8,11 +8,13 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/ouz/goauthboilerplate/internal/config"
+	"github.com/ouz/goauthboilerplate/pkg/errors"
 )
 
 type RedisCacheService interface {
 	Set(ctx context.Context, prefix, key string, ttl time.Duration, value interface{}) error
 	Get(ctx context.Context, prefix, key string, result interface{}) (error, bool)
+	Exists(ctx context.Context, prefix, key string) (bool, error)
 	Evict(ctx context.Context, prefix, key string) error
 	EvictByPrefix(ctx context.Context, prefix string) error
 	CloseRedisClient() error
@@ -65,12 +67,12 @@ func (r *redisCache) Set(ctx context.Context, prefix, key string, ttl time.Durat
 
 	jsonData, err := json.Marshal(value)
 	if err != nil {
-		return fmt.Errorf("error marshaling value: %w", err)
+		return errors.GenericError("error marshaling value", err)
 	}
 
 	err = r.client.Set(ctx, fullKey, jsonData, ttl).Err()
 	if err != nil {
-		return fmt.Errorf("error setting value to redis: %w", err)
+		return errors.GenericError("error setting value to redis", err)
 	}
 
 	return nil
@@ -83,21 +85,31 @@ func (r *redisCache) Get(ctx context.Context, prefix, key string, result interfa
 	if err == redis.Nil {
 		return nil, false
 	} else if err != nil {
-		return fmt.Errorf("error getting value from redis: %w", err), false
+		return errors.GenericError("error getting value from redis", err), false
 	}
 
 	if err := json.Unmarshal(cachedData, result); err != nil {
-		return fmt.Errorf("error unmarshaling value: %w", err), false
+		return errors.GenericError("error unmarshaling value", err), false
 	}
 
 	return nil, true
+}
+
+func (r *redisCache) Exists(ctx context.Context, prefix, key string) (bool, error) {
+	fullKey := buildRedisFullKey(prefix, key)
+
+	exists := r.client.Exists(ctx, fullKey).Val()
+	if exists == 0 {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (r *redisCache) Evict(ctx context.Context, prefix, key string) error {
 	fullKey := buildRedisFullKey(prefix, key)
 	err := r.client.Del(ctx, fullKey).Err()
 	if err != nil {
-		return fmt.Errorf("error deleting key from redis: %w", err)
+		return errors.GenericError("error deleting key from redis", err)
 	}
 	return nil
 }
@@ -110,13 +122,13 @@ func (r *redisCache) EvictByPrefix(ctx context.Context, prefix string) error {
 		keys = append(keys, iter.Val())
 	}
 	if err := iter.Err(); err != nil {
-		return fmt.Errorf("error scanning keys from redis: %w", err)
+		return errors.GenericError("error scanning keys from redis", err)
 	}
 
 	if len(keys) > 0 {
 		err := r.client.Del(ctx, keys...).Err()
 		if err != nil {
-			return fmt.Errorf("error deleting keys from redis: %w", err)
+			return errors.GenericError("error deleting keys from redis", err)
 		}
 	}
 	return nil

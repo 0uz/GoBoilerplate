@@ -50,20 +50,6 @@ CREATE TABLE IF NOT EXISTS public.clients (
 CREATE INDEX IF NOT EXISTS idx_clients_deleted_at ON public.clients USING btree (deleted_at);
 CREATE INDEX IF NOT EXISTS idx_clients_client_secret ON public.clients USING btree (client_secret);
 
-CREATE TABLE IF NOT EXISTS public.tokens (
-    id uuid NOT NULL DEFAULT gen_random_uuid(),
-    token_type text NOT NULL,
-    user_id uuid NOT NULL,
-    revoked bool NOT NULL DEFAULT false,
-    client_type text NOT NULL,
-    expires_at TIMESTAMP NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL,
-    CONSTRAINT tokens_clients_fk FOREIGN KEY (client_type) REFERENCES public.clients(client_type) ON DELETE CASCADE,
-    CONSTRAINT tokens_users_fk FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE,
-    PRIMARY KEY (id)
-);
-
 CREATE TABLE IF NOT EXISTS public.user_confirmations (
     id uuid NOT NULL DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL,
