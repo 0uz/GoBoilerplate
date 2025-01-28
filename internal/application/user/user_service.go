@@ -78,7 +78,7 @@ func (s *userService) FindByEmail(ctx context.Context, email string) (*user.User
 func (s *userService) FindUserWithRoles(ctx context.Context, id string, fromCache bool) (*user.User, error) {
 	if fromCache {
 		var user = &user.User{}
-		if _, found := s.redisCache.Get(ctx, "user", id, user); found {
+		if found, _ := s.redisCache.Get(ctx, "user", id, user); found {
 			return user, nil
 		}
 	}

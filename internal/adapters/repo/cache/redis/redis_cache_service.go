@@ -13,7 +13,7 @@ import (
 
 type RedisCacheService interface {
 	Set(ctx context.Context, prefix, key string, ttl time.Duration, value interface{}) error
-	Get(ctx context.Context, prefix, key string, result interface{}) (error, bool)
+	Get(ctx context.Context, prefix, key string, result interface{}) (bool, error)
 	Exists(ctx context.Context, prefix, key string) (bool, error)
 	Evict(ctx context.Context, prefix, key string) error
 	EvictByPrefix(ctx context.Context, prefix string) error
@@ -78,21 +78,21 @@ func (r *redisCache) Set(ctx context.Context, prefix, key string, ttl time.Durat
 	return nil
 }
 
-func (r *redisCache) Get(ctx context.Context, prefix, key string, result interface{}) (error, bool) {
+func (r *redisCache) Get(ctx context.Context, prefix, key string, result interface{}) (bool, error) {
 	fullKey := buildRedisFullKey(prefix, key)
 
 	cachedData, err := r.client.Get(ctx, fullKey).Bytes()
 	if err == redis.Nil {
-		return nil, false
+		return false, nil
 	} else if err != nil {
-		return errors.GenericError("error getting value from redis", err), false
+		return false, errors.GenericError("error getting value from redis", err)
 	}
 
 	if err := json.Unmarshal(cachedData, result); err != nil {
-		return errors.GenericError("error unmarshaling value", err), false
+		return false, errors.GenericError("error unmarshaling value", err)
 	}
 
-	return nil, true
+	return true, nil
 }
 
 func (r *redisCache) Exists(ctx context.Context, prefix, key string) (bool, error) {

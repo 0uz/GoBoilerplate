@@ -56,7 +56,7 @@ func (s *authService) GenerateToken(ctx context.Context, userId, clientSecret st
 		createTokenEntity(refreshTokenId, refreshToken, auth.REFRESH_TOKEN, userId, client.ClientType, now.Add(conf.RefreshExpiration)),
 	}
 
-	if err := saveTokenPairs(ctx, s, userId, accessTokenId, conf, refreshTokenId); err != nil {
+	if err := s.saveTokenPairs(ctx, userId, accessTokenId, conf, refreshTokenId); err != nil {
 		return nil, errors.InternalError("Failed to save token pairs", err)
 	}
 	return tokens, nil
@@ -74,7 +74,7 @@ func generateToken(jwtSecret, userID string, jti string, expiration time.Duratio
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(jwtSecret))
 }
 
-func saveTokenPairs(ctx context.Context, s *authService, userId string, accessTokenId string, conf config.JWTConfig, refreshTokenId string) error {
+func (s *authService) saveTokenPairs(ctx context.Context, userId string, accessTokenId string, conf config.JWTConfig, refreshTokenId string) error {
 	err := s.redisCache.Set(ctx, "uts:"+userId, accessTokenId, conf.AccessExpiration, 0)
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func saveTokenPairs(ctx context.Context, s *authService, userId string, accessTo
 
 func (s *authService) findClientBySecretCached(ctx context.Context, clientSecret string) (*auth.Client, error) {
 	var cachedClient = &auth.Client{}
-	if _, found := s.redisCache.Get(ctx, "client", clientSecret, cachedClient); found {
+	if found, _ := s.redisCache.Get(ctx, "client", clientSecret, cachedClient); found {
 		return cachedClient, nil
 	}
 
