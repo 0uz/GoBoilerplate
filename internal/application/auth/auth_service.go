@@ -48,7 +48,7 @@ func (s *authService) GenerateToken(ctx context.Context, userId string) ([]auth.
 
 	client := util.GetClient(ctx)
 
-	if err != nil {
+	if client == nil {
 		return nil, errors.InternalError("Failed to find client", err)
 	}
 
