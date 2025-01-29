@@ -62,7 +62,7 @@ func (h *UserHandler) RegisterAnonymousUser(w http.ResponseWriter, r *http.Reque
 
 func (h *UserHandler) ConfirmUser(w http.ResponseWriter, r *http.Request) {
 	vars := r.URL.Query()
-	confirmation := vars.Get("confirmation")
+	confirmation := vars.Get("key")
 	if confirmation == "" {
 		returnNotFound(w, r)
 		return

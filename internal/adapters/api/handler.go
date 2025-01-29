@@ -10,34 +10,33 @@ import (
 
 func SetUpAuthRoutes(mainRouter *http.ServeMux, authHandler *AuthHandler, userHandler *UserHandler, userAuthService auth.AuthService) {
 	// Public routes
-	userRouter := http.NewServeMux()
-	userRouter.HandleFunc("GET email/confirm", userHandler.ConfirmUser)
-	userRouter.HandleFunc("GET email/confirm/resend", userHandler.ConfirmUser)
-
+	authRouter := http.NewServeMux()
 	clientSecretMiddleware := middleware.HasClientSecret(userAuthService)
 
 	// Public routes with client secret
-	userRouter.Handle("POST /login", clientSecretMiddleware(http.HandlerFunc(authHandler.LoginUser)))
-	userRouter.Handle("POST /login/anonymous", clientSecretMiddleware(http.HandlerFunc(authHandler.LoginAnonymousUser)))
-	userRouter.Handle("POST /register", clientSecretMiddleware(http.HandlerFunc(userHandler.RegisterUser)))
-	userRouter.Handle("POST /register/anonymous", clientSecretMiddleware(http.HandlerFunc(userHandler.RegisterAnonymousUser)))
+	authRouter.Handle("POST /login", clientSecretMiddleware(http.HandlerFunc(authHandler.LoginUser)))
+	authRouter.Handle("POST /login/anonymous", clientSecretMiddleware(http.HandlerFunc(authHandler.LoginAnonymousUser)))
+	authRouter.Handle("POST /register", clientSecretMiddleware(http.HandlerFunc(userHandler.RegisterUser)))
+	authRouter.Handle("POST /register/anonymous", clientSecretMiddleware(http.HandlerFunc(userHandler.RegisterAnonymousUser)))
 
-	userRouter.Handle("POST /token/refresh", clientSecretMiddleware(http.HandlerFunc(authHandler.RefreshAccessToken)))
+	authRouter.Handle("POST /token/refresh", clientSecretMiddleware(http.HandlerFunc(authHandler.RefreshAccessToken)))
 
 	protectedUser := middleware.Chain(
 		clientSecretMiddleware,
 		middleware.Protected(userAuthService),
 		middleware.HasRoles(user.UserRoleUser),
 	)
-	userRouter.Handle("POST /logout", protectedUser(http.HandlerFunc(authHandler.LogoutUser)))
-	userRouter.Handle("POST /logout/all", clientSecretMiddleware(http.HandlerFunc(authHandler.LogoutAll)))
+	authRouter.Handle("POST /logout", protectedUser(http.HandlerFunc(authHandler.LogoutUser)))
+	authRouter.Handle("POST /logout/all", clientSecretMiddleware(http.HandlerFunc(authHandler.LogoutAll)))
 
-	mainRouter.Handle("/auth/", http.StripPrefix("/auth", userRouter)) // Prefix all user routes with /user
+	mainRouter.Handle("/auth/", http.StripPrefix("/auth", authRouter)) // Prefix all user routes with /user
 }
 
 func SetUpUserRoutes(mainRouter *http.ServeMux, userHandler *UserHandler, userAuthService auth.AuthService) {
 	// Public routes
 	userRouter := http.NewServeMux()
+	userRouter.HandleFunc("GET email/confirm", userHandler.ConfirmUser)
+	userRouter.HandleFunc("GET email/confirm/resend", userHandler.ConfirmUser)
 
 	protectedUser := middleware.Chain(
 		middleware.HasClientSecret(userAuthService),

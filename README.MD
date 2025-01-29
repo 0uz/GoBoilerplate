@@ -1,27 +1,26 @@
 # Go Auth Boilerplate
 
-A robust authentication boilerplate built with Go, featuring JWT authentication, PostgreSQL integration, and RESTful API endpoints.
+A robust authentication boilerplate built with Go, featuring JWT authentication, PostgreSQL integration, Redis caching, and RESTful API endpoints. This project follows clean architecture principles with a well-organized project structure.
 
 ## Features
 
 - JWT-based authentication
 - User registration and login
-- PostgreSQL database integration
+- Anonymous user support
+- PostgreSQL database integration with GORM
 - Redis cache integration for improved performance
 - RESTful API endpoints
-- Secure password hashing
 - Environment variable configuration
-- Middleware for route protection
+- Clean Architecture implementation
+- Structured logging with logrus
 
 ## Prerequisites
-
-- Go 1.16+
+- Go 1.23+
 - PostgreSQL
 - Redis
 - Docker (optional)
 
 ## Setup
-
 1. Set up environment variables (create `.env` file):
 ```bash
 # Server Configuration
@@ -52,84 +51,33 @@ JWT_REFRESH_EXPIRATION=5h
 go mod download
 ```
 
-4. Run the application:
+4. Run with Docker (optional):
 ```bash
-go run main.go
+docker-compose up -d
+```
+
+   Or run locally:
+```bash
+go run cmd/main.go
 ```
 
 ## API Endpoints
 
 ### Health Check Endpoints
 - `GET /live` - Liveness probe
-- `GET /ready` - Readiness probe
+- `GET /ready` - Readiness probe (checks database connection)
 
 ### Authentication Endpoints
 All endpoints require `x-client-key` header
+You can import postman collection to test all endpoints
+- `POST /users/registration` - Register a new user
+- `POST /users/login` - Login and receive JWT tokens
+- `POST /auth/token/refresh` - Refresh JWT token
+- `POST /auth/logout` - Logout
+- `POST /auth/logout/all` - Logout from all devices
+- `GET /users/me` - Get current user
 
-#### User Registration
-```bash
-POST /api/v1/user/register
-Content-Type: application/json
-
-{
-    "email": "example@test.com",
-    "username": "example@test.com",
-    "password": "yourpassword"
-}
-```
-
-#### User Login
-```bash
-GET /api/v1/user/login
-Content-Type: application/json
-
-{
-    "email": "example@test.com",
-    "password": "yourpassword"
-}
-```
-
-#### Anonymous User Creation
-```bash
-POST /api/v1/user/anonymous
-```
-
-#### Anonymous User Login
-```bash
-GET /api/v1/user/anonymous/login
-Content-Type: application/json
-
-{
-    "email": "anonymous-uuid"
-}
-```
-
-#### User Logout
-```bash
-POST /api/v1/user/logout
-Authorization: Bearer <access_token>
-```
-
-#### Refresh Token
-```bash
-POST /api/v1/user/refresh
-Content-Type: application/json
-
-{
-    "refresh_token": "your-refresh-token"
-}
-```
-
-#### Confirm User
-```bash
-GET /api/v1/user/{user-id}/confirm
-```
-
-### Required Headers
-- `x-client-key`: Client application identifier
-- `Authorization`: Bearer token (for authenticated endpoints)
-- `Content-Type`: application/json (for requests with body)
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the LICENSE file for details
