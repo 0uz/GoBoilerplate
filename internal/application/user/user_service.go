@@ -7,6 +7,7 @@ import (
 	"github.com/ouz/goauthboilerplate/internal/adapters/repo/cache/redis"
 	"github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres"
 	authDto "github.com/ouz/goauthboilerplate/internal/application/auth/dto"
+	"github.com/sirupsen/logrus"
 
 	"github.com/ouz/goauthboilerplate/internal/domain/shared"
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
@@ -17,13 +18,15 @@ type userService struct {
 	userRepository user.UserRepository
 	redisCache     redis.RedisCacheService
 	tx             postgres.TransactionManager
+	logger         *logrus.Logger
 }
 
-func NewUserService(ur user.UserRepository, rc redis.RedisCacheService, tx postgres.TransactionManager) user.UserService {
+func NewUserService(logger *logrus.Logger, ur user.UserRepository, rc redis.RedisCacheService, tx postgres.TransactionManager) user.UserService {
 	return &userService{
 		userRepository: ur,
 		redisCache:     rc,
 		tx:             tx,
+		logger:         logger,
 	}
 }
 

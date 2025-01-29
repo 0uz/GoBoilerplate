@@ -12,16 +12,19 @@ import (
 	"github.com/ouz/goauthboilerplate/internal/domain/auth"
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type authService struct {
+	logger         *logrus.Logger
 	authRepository auth.AuthRepository
 	userService    user.UserService
 	redisCache     redis.RedisCacheService
 }
 
-func NewAuthService(ar auth.AuthRepository, us user.UserService, rc redis.RedisCacheService) auth.AuthService {
+func NewAuthService(logger *logrus.Logger, ar auth.AuthRepository, us user.UserService, rc redis.RedisCacheService) auth.AuthService {
 	return &authService{
+		logger:         logger,
 		authRepository: ar,
 		userService:    us,
 		redisCache:     rc,
@@ -43,7 +46,7 @@ func (s *authService) GenerateToken(ctx context.Context, userId string) ([]auth.
 		return nil, errors.InternalError("Failed to generate refresh token", err)
 	}
 
-	client:= util.GetClient(ctx)
+	client := util.GetClient(ctx)
 
 	if err != nil {
 		return nil, errors.InternalError("Failed to find client", err)
@@ -139,7 +142,6 @@ func (s *authService) RevokeAllTokens(ctx context.Context, userID string) error 
 	}
 	return nil
 }
-
 
 func (s *authService) RefreshAccessToken(ctx context.Context, refreshToken string) ([]auth.Token, error) {
 	claims, err := s.ValidateToken(ctx, refreshToken)

@@ -2,13 +2,13 @@ package config
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type Config struct {
@@ -54,14 +54,14 @@ var (
 	conf *Config
 )
 
-func Load(logger *slog.Logger) error {
+func Load(logger *logrus.Logger) error {
 	if err := loadEnv(logger); err != nil {
-		fmt.Println("loading environment variables: %w", err)
+		logger.Error("Loading environment variables", "error", err)
 	}
 
 	config, err := parseConfig()
 	if err != nil {
-		return fmt.Errorf("parsing config: %w", err)
+		return errors.GenericError("Parsing config", err)
 	}
 
 	if err := validate(config); err != nil {
@@ -76,7 +76,7 @@ func Get() *Config {
 	return conf
 }
 
-func loadEnv(logger *slog.Logger) error {
+func loadEnv(logger *logrus.Logger) error {
 	if err := godotenv.Load("./.env"); err != nil {
 		logger.Info("No .env file found, using environment variables")
 	}

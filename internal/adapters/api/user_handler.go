@@ -11,14 +11,17 @@ import (
 	userDto "github.com/ouz/goauthboilerplate/internal/application/user/dto"
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type UserHandler struct {
+	logger      *logrus.Logger
 	userService user.UserService
 }
 
-func NewUserHandler(userService user.UserService) *UserHandler {
+func NewUserHandler(logger *logrus.Logger, userService user.UserService) *UserHandler {
 	return &UserHandler{
+		logger:      logger,
 		userService: userService,
 	}
 }

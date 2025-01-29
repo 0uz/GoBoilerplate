@@ -3,11 +3,11 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/ouz/goauthboilerplate/internal/config"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -34,7 +34,7 @@ func ConnectDB() (*gorm.DB, error) {
 	return db, nil
 }
 
-func CloseDatabaseConnection(db *gorm.DB) error {
+func CloseDatabaseConnection(db *gorm.DB, logger *logrus.Logger) error {
 	sqlDB, err := db.DB()
 	if err != nil {
 		return errors.InternalError("Failed to get database instance", err)
@@ -54,7 +54,7 @@ func CloseDatabaseConnection(db *gorm.DB) error {
 		return errors.InternalError("Failed to close database connection", err)
 	}
 
-	slog.Info("Database connection closed")
+	logger.Info("Database connection closed")
 
 	return nil
 }

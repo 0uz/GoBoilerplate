@@ -10,14 +10,17 @@ import (
 	authDto "github.com/ouz/goauthboilerplate/internal/application/auth/dto"
 	authService "github.com/ouz/goauthboilerplate/internal/domain/auth"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type AuthHandler struct {
+	logger      *logrus.Logger
 	authService authService.AuthService
 }
 
-func NewAuthHandler(authService authService.AuthService) *AuthHandler {
+func NewAuthHandler(logger *logrus.Logger, authService authService.AuthService) *AuthHandler {
 	return &AuthHandler{
+		logger:      logger,
 		authService: authService,
 	}
 }

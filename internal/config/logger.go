@@ -1,14 +1,38 @@
 package config
 
 import (
-	"log/slog"
 	"os"
+	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
-func NewLogger() *slog.Logger {
-	opts := &slog.HandlerOptions{
-		AddSource: true,
-		Level:     slog.LevelInfo,
+func NewLogger() *logrus.Logger {
+	logger := logrus.New()
+
+	if os.Getenv("APP_ENV") == "production" {
+
+		logger.SetFormatter(&logrus.JSONFormatter{
+			TimestampFormat: time.RFC3339Nano,
+			FieldMap: logrus.FieldMap{
+				logrus.FieldKeyTime:  "@timestamp",
+				logrus.FieldKeyLevel: "level",
+				logrus.FieldKeyMsg:   "message",
+			},
+		})
+
+		logger.SetLevel(logrus.InfoLevel)
+	} else {
+		logger.SetFormatter(&logrus.TextFormatter{
+			TimestampFormat: time.RFC3339Nano,
+			PadLevelText:    true,
+			FullTimestamp:   true,
+			ForceColors: true,
+		})
+
+		logger.SetLevel(logrus.InfoLevel)
 	}
-	return slog.New(slog.NewJSONHandler(os.Stdout, opts))
+
+	logger.SetOutput(os.Stdout)
+	return logger
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/sirupsen/logrus"
 
 	"github.com/ouz/goauthboilerplate/internal/adapters/api"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/middleware"
@@ -27,7 +27,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var logger *slog.Logger
+var logger *logrus.Logger
 
 func main() {
 	logger = config.NewLogger()
@@ -46,7 +46,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	defer postgres.CloseDatabaseConnection(db)
+	defer postgres.CloseDatabaseConnection(db, logger)
 
 	// Connect redis cache
 	redisClient, err := redisCache.ConnectRedis()
@@ -73,9 +73,9 @@ func run() error {
 	}
 
 	go func() {
-		slog.Info("Server is starting", "port", config.Get().App.Port)
+		logger.Info("Server is starting", "port", config.Get().App.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slog.Error("Server failed", "error", err)
+			logger.Error("Server failed", "error", err)
 			os.Exit(1)
 		}
 	}()
@@ -85,7 +85,7 @@ func run() error {
 	<-quit
 
 	// Graceful shutdown
-	slog.Info("Server is shutting down...")
+	logger.Info("Server is shutting down...")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -93,16 +93,16 @@ func run() error {
 		return errors.GenericError("server shutdown failed: %v", err)
 	}
 
-	slog.Info("Server stopped gracefully")
+	logger.Info("Server stopped gracefully")
 	return nil
 }
 
-func addV1Prefix(r *http.ServeMux, logger *slog.Logger) *http.ServeMux {
+func addV1Prefix(r *http.ServeMux, logger *logrus.Logger) *http.ServeMux {
 	tokenBucket := middleware.NewTokenBucket(1, 3)
 	chain := middleware.Chain(
 		middleware.RateLimitMiddleware(tokenBucket),
 		middleware.Logging(logger),
-		middleware.Recovery(),
+		middleware.Recovery(logger),
 	)
 	v1 := http.NewServeMux()
 
@@ -138,13 +138,13 @@ func setupServiceAndRoutes(mainRouter *http.ServeMux, pgdb *gorm.DB, redisClient
 	tx := postgres.NewTransactionManager(pgdb)
 
 	userRepo := repoUser.NewUserRepository(pgdb)
-	userService := user.NewUserService(userRepo, redisCache, tx)
+	userService := user.NewUserService(logger, userRepo, redisCache, tx)
 
 	authRepo := repoAuth.NewAuthRepository(pgdb)
-	authService := auth.NewAuthService(authRepo, userService, redisCache)
+	authService := auth.NewAuthService(logger, authRepo, userService, redisCache)
 
-	authHandler := api.NewAuthHandler(authService)
-	userHandler := api.NewUserHandler(userService)
+	authHandler := api.NewAuthHandler(logger, authService)
+	userHandler := api.NewUserHandler(logger, userService)
 
 	api.SetUpAuthRoutes(mainRouter, authHandler, userHandler, authService)
 	api.SetUpUserRoutes(mainRouter, userHandler, authService)
