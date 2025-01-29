@@ -27,7 +27,7 @@ func NewLogger() *logrus.Logger {
 			TimestampFormat: time.RFC3339Nano,
 			PadLevelText:    true,
 			FullTimestamp:   true,
-			ForceColors: true,
+			ForceColors:     true,
 		})
 
 		logger.SetLevel(logrus.InfoLevel)

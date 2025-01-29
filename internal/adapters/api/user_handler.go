@@ -86,7 +86,6 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
 func returnNotFound(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "internal/ports/api/template/not_found.html")
 }

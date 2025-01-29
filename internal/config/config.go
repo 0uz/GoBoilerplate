@@ -159,7 +159,6 @@ func validate(c *Config) error {
 		return errors.ValidationError("MAIL_PORT is not set", nil)
 	}
 
-	
 	if _, err := strconv.Atoi(c.App.Port); err != nil {
 		return errors.ValidationError("invalid PORT", err)
 	}
