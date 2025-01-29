@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
 	"github.com/ouz/goauthboilerplate/internal/adapters/repo/cache/redis"
 	"github.com/ouz/goauthboilerplate/internal/config"
 	"github.com/ouz/goauthboilerplate/internal/domain/auth"
@@ -27,7 +28,7 @@ func NewAuthService(ar auth.AuthRepository, us user.UserService, rc redis.RedisC
 	}
 }
 
-func (s *authService) GenerateToken(ctx context.Context, userId, clientSecret string) ([]auth.Token, error) {
+func (s *authService) GenerateToken(ctx context.Context, userId string) ([]auth.Token, error) {
 	now := time.Now()
 
 	accessTokenId := uuid.New().String()
@@ -42,21 +43,24 @@ func (s *authService) GenerateToken(ctx context.Context, userId, clientSecret st
 		return nil, errors.InternalError("Failed to generate refresh token", err)
 	}
 
-	if err := s.RevokeAllOldTokens(ctx, userId); err != nil {
-		return nil, errors.InternalError("Failed to revoke old tokens", err)
-	}
+	client:= util.GetClient(ctx)
 
-	client, err := s.findClientBySecretCached(ctx, clientSecret)
 	if err != nil {
 		return nil, errors.InternalError("Failed to find client", err)
 	}
 
-	tokens := []auth.Token{
-		createTokenEntity(accessTokenId, accessToken, auth.ACCESS_TOKEN, userId, client.ClientType, now.Add(conf.AccessExpiration)),
-		createTokenEntity(refreshTokenId, refreshToken, auth.REFRESH_TOKEN, userId, client.ClientType, now.Add(conf.RefreshExpiration)),
+	if err := s.RevokeAllTokensByClient(ctx, userId, client.ClientType); err != nil {
+		return nil, errors.InternalError("Failed to revoke old tokens", err)
 	}
 
-	if err := s.saveTokenPairs(ctx, userId, accessTokenId, conf, refreshTokenId); err != nil {
+	clientType := string(client.ClientType)
+
+	tokens := []auth.Token{
+		createTokenEntity(accessTokenId, accessToken, auth.ACCESS_TOKEN, userId, clientType, now.Add(conf.AccessExpiration)),
+		createTokenEntity(refreshTokenId, refreshToken, auth.REFRESH_TOKEN, userId, clientType, now.Add(conf.RefreshExpiration)),
+	}
+
+	if err := s.saveTokenPairs(ctx, userId, accessTokenId, refreshTokenId, clientType, conf); err != nil {
 		return nil, errors.InternalError("Failed to save token pairs", err)
 	}
 	return tokens, nil
@@ -74,15 +78,15 @@ func generateToken(jwtSecret, userID string, jti string, expiration time.Duratio
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(jwtSecret))
 }
 
-func (s *authService) saveTokenPairs(ctx context.Context, userId string, accessTokenId string, conf config.JWTConfig, refreshTokenId string) error {
-	err := s.redisCache.Set(ctx, "uts:"+userId, accessTokenId, conf.AccessExpiration, 0)
+func (s *authService) saveTokenPairs(ctx context.Context, userId, accessTokenId, refreshTokenId, clientType string, conf config.JWTConfig) error {
+	err := s.redisCache.Set(ctx, "uat:"+userId+":"+clientType, accessTokenId, conf.AccessExpiration, 0)
 	if err != nil {
 		return err
 	}
-	return s.redisCache.Set(ctx, "uts:"+userId, refreshTokenId, conf.RefreshExpiration, 0)
+	return s.redisCache.Set(ctx, "urt:"+userId+":"+clientType, refreshTokenId, conf.RefreshExpiration, 0)
 }
 
-func (s *authService) findClientBySecretCached(ctx context.Context, clientSecret string) (*auth.Client, error) {
+func (s *authService) FindClientBySecretCached(ctx context.Context, clientSecret string) (*auth.Client, error) {
 	var cachedClient = &auth.Client{}
 	if found, _ := s.redisCache.Get(ctx, "client", clientSecret, cachedClient); found {
 		return cachedClient, nil
@@ -110,18 +114,45 @@ func createTokenEntity(id string, token string, tokenType auth.TokenType, userID
 	}
 }
 
-func (s *authService) RevokeAllOldTokens(ctx context.Context, userID string) error {
-	return s.redisCache.EvictByPrefix(ctx, "uts:"+userID)
+func (s *authService) RevokeAllTokensByClient(ctx context.Context, userID string, clientType auth.ClientType) error {
+	err := s.redisCache.EvictByPrefix(ctx, "uat:"+userID+":"+string(clientType))
+	if err != nil {
+		return err
+	}
+
+	err = s.redisCache.EvictByPrefix(ctx, "urt:"+userID+":"+string(clientType))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (s *authService) RefreshAccessToken(ctx context.Context, refreshToken, clientSecret string) ([]auth.Token, error) {
+func (s *authService) RevokeAllTokens(ctx context.Context, userID string) error {
+	err := s.redisCache.EvictByPrefix(ctx, "uat:"+userID)
+	if err != nil {
+		return err
+	}
 
+	err = s.redisCache.EvictByPrefix(ctx, "urt:"+userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+
+func (s *authService) RefreshAccessToken(ctx context.Context, refreshToken string) ([]auth.Token, error) {
 	claims, err := s.ValidateToken(ctx, refreshToken)
 	if err != nil {
 		return nil, err
 	}
 
-	revoked, err := s.IsTokenRevoked(ctx, claims.ID, claims.UserId)
+	client := util.GetClient(ctx)
+	if client == nil {
+		return nil, errors.InternalError("Failed to get client", nil)
+	}
+
+	revoked, err := s.IsTokenRevoked(ctx, claims.ID, claims.UserId, string(client.ClientType))
 	if err != nil {
 		return nil, errors.InternalError("Failed to check if token is revoked", err)
 	}
@@ -135,7 +166,7 @@ func (s *authService) RefreshAccessToken(ctx context.Context, refreshToken, clie
 		return nil, errors.NotFoundError("User not found", err)
 	}
 
-	tokens, err := s.GenerateToken(ctx, user.ID, clientSecret)
+	tokens, err := s.GenerateToken(ctx, user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +195,7 @@ func (s *authService) ValidateToken(ctx context.Context, token string) (*auth.To
 	return claims, nil
 }
 
-func (s *authService) Login(ctx context.Context, email, password, clientSecret string) ([]auth.Token, error) {
+func (s *authService) Login(ctx context.Context, email, password string) ([]auth.Token, error) {
 	user, err := s.userService.FindByEmail(ctx, email)
 	if err != nil {
 		return nil, errors.InternalError("Failed to find user", err)
@@ -177,7 +208,7 @@ func (s *authService) Login(ctx context.Context, email, password, clientSecret s
 		return nil, errors.UnauthorizedError("Invalid credentials", nil)
 	}
 
-	tokens, err := s.GenerateToken(ctx, user.ID, clientSecret)
+	tokens, err := s.GenerateToken(ctx, user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +216,7 @@ func (s *authService) Login(ctx context.Context, email, password, clientSecret s
 	return tokens, nil
 }
 
-func (s *authService) LoginAnonymous(ctx context.Context, email, clientSecret string) ([]auth.Token, error) {
+func (s *authService) LoginAnonymous(ctx context.Context, email string) ([]auth.Token, error) {
 	user, err := s.userService.FindByEmail(ctx, email)
 	if err != nil {
 		return nil, errors.InternalError("Failed to find user", err)
@@ -194,7 +225,7 @@ func (s *authService) LoginAnonymous(ctx context.Context, email, clientSecret st
 		return nil, errors.NotFoundError("User not found", nil)
 	}
 
-	tokens, err := s.GenerateToken(ctx, user.ID, clientSecret)
+	tokens, err := s.GenerateToken(ctx, user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +234,18 @@ func (s *authService) LoginAnonymous(ctx context.Context, email, clientSecret st
 }
 
 func (s *authService) Logout(ctx context.Context, userID string) error {
-	if err := s.RevokeAllOldTokens(ctx, userID); err != nil {
+	client := util.GetClient(ctx)
+	if client == nil {
+		return errors.InternalError("Failed to get client", nil)
+	}
+	if err := s.RevokeAllTokensByClient(ctx, userID, client.ClientType); err != nil {
+		return errors.InternalError("Failed to revoke old tokens", err)
+	}
+	return nil
+}
+
+func (s *authService) LogoutAll(ctx context.Context, userID string) error {
+	if err := s.RevokeAllTokens(ctx, userID); err != nil {
 		return errors.InternalError("Failed to revoke old tokens", err)
 	}
 	return nil
@@ -215,7 +257,12 @@ func (s *authService) ValidateTokenAndGetUser(ctx context.Context, token string)
 		return nil, err
 	}
 
-	revoked, err := s.IsTokenRevoked(ctx, claims.ID, claims.UserId)
+	client := util.GetClient(ctx)
+	if client == nil {
+		return nil, errors.InternalError("Failed to get client", nil)
+	}
+
+	revoked, err := s.IsTokenRevoked(ctx, claims.ID, claims.UserId, string(client.ClientType))
 	if err != nil {
 		return nil, errors.InternalError("Failed to check if token is revoked", err)
 	}
@@ -232,7 +279,7 @@ func (s *authService) ValidateTokenAndGetUser(ctx context.Context, token string)
 	return user, nil
 }
 
-func (s *authService) IsTokenRevoked(ctx context.Context, tokenID, userID string) (bool, error) {
-	exists, err := s.redisCache.Exists(ctx, "uts:"+userID, tokenID)
+func (s *authService) IsTokenRevoked(ctx context.Context, tokenID, userID, clientType string) (bool, error) {
+	exists, err := s.redisCache.Exists(ctx, "uat:"+userID+":"+clientType, tokenID)
 	return !exists, err
 }

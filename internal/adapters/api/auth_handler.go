@@ -23,12 +23,6 @@ func NewAuthHandler(authService authService.AuthService) *AuthHandler {
 }
 
 func (h *AuthHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request) {
-	clientSecret := util.ExtractClientSecret(r)
-	if clientSecret == "" {
-		resp.Error(w, errors.UnauthorizedError("x-client-key header is required", nil))
-		return
-	}
-
 	var request authDto.RefreshAccessTokenRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		resp.Error(w, errors.BadRequestError("Invalid request body"))
@@ -40,7 +34,7 @@ func (h *AuthHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	tokens, err := h.authService.RefreshAccessToken(r.Context(), request.RefreshToken, clientSecret)
+	tokens, err := h.authService.RefreshAccessToken(r.Context(), request.RefreshToken)
 	if err != nil {
 		resp.Error(w, err)
 		return
@@ -55,11 +49,6 @@ func (h *AuthHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
-	clientSecret := util.ExtractClientSecret(r)
-	if clientSecret == "" {
-		resp.Error(w, errors.UnauthorizedError("x-client-key header is required", nil))
-		return
-	}
 	var request authDto.UserLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		resp.Error(w, errors.BadRequestError("Invalid request body"))
@@ -71,7 +60,7 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokens, err := h.authService.Login(r.Context(), request.Email, request.Password, clientSecret)
+	tokens, err := h.authService.Login(r.Context(), request.Email, request.Password)
 	if err != nil {
 		resp.Error(w, err)
 		return
@@ -86,12 +75,6 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) LoginAnonymousUser(w http.ResponseWriter, r *http.Request) {
-	clientSecret := util.ExtractClientSecret(r)
-	if clientSecret == "" {
-		resp.Error(w, errors.UnauthorizedError("x-client-key header is required", nil))
-		return
-	}
-
 	var request authDto.AnonymousUserLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		resp.Error(w, errors.BadRequestError("Invalid request body"))
@@ -103,7 +86,7 @@ func (h *AuthHandler) LoginAnonymousUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	tokens, err := h.authService.LoginAnonymous(r.Context(), request.Email, clientSecret)
+	tokens, err := h.authService.LoginAnonymous(r.Context(), request.Email)
 	if err != nil {
 		resp.Error(w, err)
 		return
@@ -125,6 +108,21 @@ func (h *AuthHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.authService.Logout(r.Context(), user.ID); err != nil {
+		resp.Error(w, err)
+		return
+	}
+
+	resp.JSON(w, http.StatusOK, nil)
+}
+
+func (h *AuthHandler) LogoutAll(w http.ResponseWriter, r *http.Request) {
+	user := util.GetAuthenticatedUser(r)
+	if user == nil {
+		resp.Error(w, errors.UnauthorizedError("User not found", nil))
+		return
+	}
+
+	if err := h.authService.LogoutAll(r.Context(), user.ID); err != nil {
 		resp.Error(w, err)
 		return
 	}
