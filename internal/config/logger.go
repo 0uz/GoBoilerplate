@@ -10,7 +10,7 @@ import (
 func NewLogger() *logrus.Logger {
 	logger := logrus.New()
 
-	if os.Getenv("APP_ENV") == "production" {
+	if os.Getenv("APP_ENV") == "PROD" {
 
 		logger.SetFormatter(&logrus.JSONFormatter{
 			TimestampFormat: time.RFC3339Nano,

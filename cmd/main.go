@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 
 	"github.com/ouz/goauthboilerplate/internal/adapters/api"
@@ -41,7 +42,7 @@ func run() error {
 		return err
 	}
 
-	// Connect postgres database
+
 	db, err := postgres.ConnectDB()
 	if err != nil {
 		return err
@@ -56,6 +57,8 @@ func run() error {
 	defer redisCache.CloseRedisClient(redisClient)
 
 	mainRouter := http.NewServeMux()
+
+	mainRouter.Handle("/metrics", promhttp.Handler())
 
 	setupHealthChecks(mainRouter, db)
 	setupServiceAndRoutes(mainRouter, db, redisClient)
@@ -73,7 +76,7 @@ func run() error {
 	}
 
 	go func() {
-		logger.Info("Server is starting", "port", config.Get().App.Port)
+		logger.Info("Server is starting ", "port ", config.Get().App.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("Server failed", "error", err)
 			os.Exit(1)

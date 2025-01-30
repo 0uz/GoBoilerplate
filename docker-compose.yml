@@ -10,6 +10,7 @@ services:
       pgdb:
         condition: service_healthy
     environment:
+      APP_ENV: PROD
       DB_PORT: ${PORT}
       V1_PREFIX: ${V1_PREFIX}
       PG_DB_HOST: pgdb
@@ -32,6 +33,11 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    volumes:
+      - ./logs:/var/log
+    networks:
+      - app-network
+      - monitoring-network
 
   pgdb:
     image: postgres:latest
@@ -51,6 +57,8 @@ services:
       interval: 1s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
 
   redis:
     image: redis:latest
@@ -65,7 +73,92 @@ services:
       interval: 1s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
+
+  # Monitoring Stack
+  loki:
+    image: grafana/loki:latest
+    container_name: goauthboiler-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/config.yaml:/etc/loki/config.yaml
+      - loki-data:/loki
+    command: -config.file=/etc/loki/config.yaml
+    networks:
+      - monitoring-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: goauthboiler-promtail
+    volumes:
+      - ./monitoring/promtail/config.yaml:/etc/promtail/config.yaml
+      - /var/log:/var/log
+    command: -config.file=/etc/promtail/config.yaml
+    depends_on:
+      - loki
+    networks:
+      - monitoring-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: goauthboiler-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    networks:
+      - monitoring-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: goauthboiler-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - monitoring-network
+    depends_on:
+      - prometheus
+      - loki
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   redis-data:
   postgres_data:
+  loki-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  app-network:
+    driver: bridge
+  monitoring-network:
+    driver: bridge

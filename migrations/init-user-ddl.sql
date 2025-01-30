@@ -63,4 +63,6 @@ CREATE INDEX IF NOT EXISTS idx_user_confirmations_deleted_at ON public.user_conf
 CREATE INDEX IF NOT EXISTS idx_user_confirmations_user_id ON public.user_confirmations USING btree (user_id);
 
 
-INSERT INTO public.clients (client_type,client_secret,created_at) VALUES ('IOS','01923017-c79e-79cc-8f0a-3f622fccce53'::uuid,'now');
+INSERT INTO public.clients (client_type,client_secret,created_at) VALUES ('WEB',gen_random_uuid(),'now');
+INSERT INTO public.clients (client_type,client_secret,created_at) VALUES ('ANDROID',gen_random_uuid(),'now');
+INSERT INTO public.clients (client_type,client_secret,created_at) VALUES ('IOS',gen_random_uuid(),'now');
