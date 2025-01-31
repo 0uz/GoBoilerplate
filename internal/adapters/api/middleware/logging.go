@@ -3,29 +3,7 @@ package middleware
 import (
 	"net/http"
 	"time"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/sirupsen/logrus"
-)
-
-var (
-	httpRequestsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "http_requests_total",
-			Help: "Total number of HTTP requests",
-		},
-		[]string{"method", "endpoint", "status"},
-	)
-
-	httpRequestDuration = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "http_request_duration_seconds",
-			Help:    "Duration of HTTP requests",
-			Buckets: prometheus.DefBuckets,
-		},
-		[]string{"method", "endpoint"},
-	)
 )
 
 func Logging(logger *logrus.Logger) Middleware {
@@ -35,9 +13,6 @@ func Logging(logger *logrus.Logger) Middleware {
 			wrapper := &responseWriter{ResponseWriter: w, status: http.StatusOK}
 			next.ServeHTTP(wrapper, r)
 			duration := time.Since(start)
-
-			httpRequestDuration.WithLabelValues(r.Method, r.URL.Path).Observe(duration.Seconds())
-			httpRequestsTotal.WithLabelValues(r.Method, r.URL.Path, string(rune(wrapper.status))).Inc()
 
 			// Log entry oluştur
 			entry := logger.WithFields(logrus.Fields{
