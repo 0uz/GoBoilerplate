@@ -18,7 +18,7 @@ var (
 
 type LocalCacheService interface {
 	Set(prefix, key string, ttl time.Duration, value interface{})
-	Get(prefix, key string, result interface{}) (error, bool)
+	Get(prefix, key string, result interface{}) (bool, error)
 	Evict(prefix, key string)
 	EvictByPrefix(prefix string)
 }
@@ -60,19 +60,19 @@ func (c *cache) Set(prefix, key string, ttl time.Duration, value interface{}) {
 	}
 }
 
-func (c *cache) Get(prefix, key string, result interface{}) (error, bool) {
+func (c *cache) Get(prefix, key string, result interface{}) (bool, error) {
 	fullKey := buildFullKey(prefix, key)
 
 	cachedData, err := c.cache.Get([]byte(fullKey))
 	if err != nil || cachedData == nil {
-		return err, false
+		return false, err
 	}
 
 	if err := json.Unmarshal(cachedData, result); err != nil {
-		return err, false
+		return false, err
 	}
 
-	return nil, true
+	return true, nil
 }
 
 func (c *cache) Evict(prefix, key string) {

@@ -75,81 +75,9 @@ services:
     networks:
       - app-network
 
-  loki:
-    image: grafana/loki:latest
-    container_name: goauthboiler-loki
-    ports:
-      - "3100:3100"
-    volumes:
-      - ./monitoring/loki/config.yaml:/etc/loki/config.yaml
-      - loki-data:/loki
-    command: -config.file=/etc/loki/config.yaml
-    networks:
-      - app-network
-
-  promtail:
-    image: grafana/promtail:latest
-    container_name: goauthboiler-promtail
-    user: root
-    volumes:
-      - ./monitoring/promtail/config.yaml:/etc/promtail/config.yaml:ro
-      - ./logs:/var/log:ro
-    command: -config.file=/etc/promtail/config.yaml
-    depends_on:
-      - loki
-    networks:
-      - app-network
-
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: goauthboiler-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus:/etc/prometheus
-      - prometheus-data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=15d'
-      - '--web.enable-lifecycle'
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: goauthboiler-grafana
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-      - grafana-data:/var/lib/grafana
-    environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
-      - GF_USERS_ALLOW_SIGN_UP=false
-    networks:
-      - app-network
-    depends_on:
-      - prometheus
-      - loki
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
 volumes:
   postgres_data:
   redis-data:
-  loki-data:
-  prometheus-data:
-  grafana-data:
 
 networks:
   app-network:
