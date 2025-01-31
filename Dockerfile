@@ -18,12 +18,15 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/main.g
 # Final stage
 FROM alpine:latest  
 
-# Set the working directory
-WORKDIR /root/
+# Add necessary packages
+RUN apk add --no-cache curl
 
-# Create logs directory
-RUN mkdir -p /root/logs && \
-    chmod 755 /root/logs
+# Create a non-root user
+RUN addgroup -S appgroup && \
+    adduser -S appuser -G appgroup
+
+# Set the working directory
+WORKDIR /app
 
 # Copy the binary from builder
 COPY --from=builder /app/main .
@@ -31,8 +34,11 @@ COPY --from=builder /app/main .
 # Copy the .env file
 COPY .env .
 
-# Expose port 8080
-EXPOSE 8080
+# Set ownership of the application files
+RUN chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
 
 # Command to run the executable
 CMD ["./main"]
