@@ -2,11 +2,17 @@ package response
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 
 	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
+
+var logger *logrus.Logger
+
+func InitResponseLogger(l *logrus.Logger) {
+	logger = l
+}
 
 func JSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
@@ -15,7 +21,7 @@ func JSON(w http.ResponseWriter, status int, data interface{}) {
 		return
 	}
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		slog.Error("Failed to encode response", "error", err)
+		logger.Error("Failed to encode response", "error", err)
 	}
 }
 

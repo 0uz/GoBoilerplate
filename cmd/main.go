@@ -15,6 +15,7 @@ import (
 
 	"github.com/ouz/goauthboilerplate/internal/adapters/api"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/middleware"
+	"github.com/ouz/goauthboilerplate/internal/adapters/api/response"
 	redisCache "github.com/ouz/goauthboilerplate/internal/adapters/repo/cache/redis"
 	"github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
@@ -42,7 +43,6 @@ func run() error {
 		return err
 	}
 
-
 	db, err := postgres.ConnectDB()
 	if err != nil {
 		return err
@@ -55,6 +55,8 @@ func run() error {
 		return err
 	}
 	defer redisCache.CloseRedisClient(redisClient)
+
+	response.InitResponseLogger(logger)
 
 	mainRouter := http.NewServeMux()
 

@@ -72,7 +72,7 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "reqps"
         },
         "overrides": []
       },
@@ -85,8 +85,11 @@
       "id": 1,
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
@@ -102,13 +105,13 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "rate(http_requests_total[5m])",
+          "expr": "sum by (method, path, status) (rate(http_requests_total[5m]))",
           "legendFormat": "{{method}} {{path}} ({{status}})",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Request Rate (5m)",
+      "title": "Request Rate by Path (5m)",
       "type": "timeseries"
     },
     {
@@ -174,8 +177,11 @@
       "id": 2,
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
@@ -191,13 +197,13 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "rate(http_request_duration_seconds_sum[5m]) / rate(http_request_duration_seconds_count[5m])",
+          "expr": "sum by (method, path) (rate(http_request_duration_seconds_sum[5m])) / sum by (method, path) (rate(http_request_duration_seconds_count[5m]))",
           "legendFormat": "{{method}} {{path}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Average Response Time (5m)",
+      "title": "Average Response Time by Path (5m)",
       "type": "timeseries"
     },
     {
@@ -219,11 +225,16 @@
                 "value": null
               },
               {
+                "color": "yellow",
+                "value": 50
+              },
+              {
                 "color": "red",
-                "value": 80
+                "value": 100
               }
             ]
-          }
+          },
+          "unit": "none"
         },
         "overrides": []
       },
@@ -281,7 +292,7 @@
         "prettifyLogMessage": false,
         "showCommonLabels": false,
         "showLabels": false,
-        "showTime": false,
+        "showTime": true,
         "sortOrder": "Descending",
         "wrapLogMessage": false
       },
@@ -292,7 +303,7 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "{job=\"goauthboiler\"}",
+          "expr": "{container=\"goauthboiler\"}",
           "queryType": "range",
           "refId": "A"
         }
@@ -309,7 +320,7 @@
     "list": []
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-15m",
     "to": "now"
   },
   "timepicker": {},

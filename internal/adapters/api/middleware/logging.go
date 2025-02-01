@@ -1,12 +1,13 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"time"
-	"fmt"
-	"github.com/sirupsen/logrus"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/sirupsen/logrus"
 )
 
 var (
