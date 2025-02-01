@@ -3,3 +3,4 @@
 /go.sum
 /.vscode
 /logs
+/monitoring/.env
