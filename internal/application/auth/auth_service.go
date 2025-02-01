@@ -154,7 +154,7 @@ func (s *authService) RefreshAccessToken(ctx context.Context, refreshToken strin
 		return nil, errors.InternalError("Failed to get client", nil)
 	}
 
-	revoked, err := s.IsTokenRevoked(ctx, claims.ID, claims.UserId, string(client.ClientType))
+	revoked, err := s.IsRefreshTokenRevoked(ctx, claims.ID, claims.UserId, string(client.ClientType))
 	if err != nil {
 		return nil, errors.InternalError("Failed to check if token is revoked", err)
 	}
@@ -264,7 +264,7 @@ func (s *authService) ValidateTokenAndGetUser(ctx context.Context, token string)
 		return nil, errors.InternalError("Failed to get client", nil)
 	}
 
-	revoked, err := s.IsTokenRevoked(ctx, claims.ID, claims.UserId, string(client.ClientType))
+	revoked, err := s.IsAccessTokenRevoked(ctx, claims.ID, claims.UserId, string(client.ClientType))
 	if err != nil {
 		return nil, errors.InternalError("Failed to check if token is revoked", err)
 	}
@@ -281,7 +281,12 @@ func (s *authService) ValidateTokenAndGetUser(ctx context.Context, token string)
 	return user, nil
 }
 
-func (s *authService) IsTokenRevoked(ctx context.Context, tokenID, userID, clientType string) (bool, error) {
+func (s *authService) IsAccessTokenRevoked(ctx context.Context, tokenID, userID, clientType string) (bool, error) {
 	exists, err := s.redisCache.Exists(ctx, "uat:"+userID+":"+clientType, tokenID)
+	return !exists, err
+}
+
+func (s *authService) IsRefreshTokenRevoked(ctx context.Context, tokenID, userID, clientType string) (bool, error) {
+	exists, err := s.redisCache.Exists(ctx, "urt:"+userID+":"+clientType, tokenID)
 	return !exists, err
 }
