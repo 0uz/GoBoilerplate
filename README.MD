@@ -20,7 +20,7 @@ A robust authentication boilerplate built with Go, featuring JWT authentication,
 
 - Go 1.23.4 or higher
 - PostgreSQL
-- Redis
+- Valkey
 - Docker and Docker Compose (optional)
 
 ## Setup and Installation
