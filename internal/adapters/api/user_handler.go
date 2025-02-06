@@ -77,13 +77,16 @@ func (h *UserHandler) ConfirmUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-	user := util.GetAuthenticatedUser(r)
+	user, err := util.GetAuthenticatedUser(r)
+	if err != nil {
+		resp.Error(w, err)
+		return
+	}
 
 	resp.JSON(w, http.StatusOK, userDto.UserResponse{
 		ID:    user.ID,
 		Email: user.Email,
 	})
-
 }
 
 func returnNotFound(w http.ResponseWriter, r *http.Request) {

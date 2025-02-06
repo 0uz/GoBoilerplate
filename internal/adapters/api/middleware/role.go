@@ -12,9 +12,9 @@ import (
 func HasRoles(requiredRoles ...user.UserRoleName) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			user := util.GetAuthenticatedUser(r)
-			if user == nil {
-				response.Error(w, errors.UnauthorizedError("Unauthorized", nil))
+			user, err := util.GetAuthenticatedUser(r)
+			if err != nil {
+				response.Error(w, err)
 				return
 			}
 

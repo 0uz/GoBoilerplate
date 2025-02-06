@@ -14,6 +14,6 @@ type AuthService interface {
 	LoginAnonymous(ctx context.Context, email string) ([]Token, error)
 	Logout(ctx context.Context, userID string) error
 	LogoutAll(ctx context.Context, userID string) error
-	ValidateTokenAndGetUser(ctx context.Context, token string) (*user.User, error)
-	FindClientBySecretCached(ctx context.Context, clientSecret string) (*Client, error)
+	ValidateTokenAndGetUser(ctx context.Context, token string) (user.User, error)
+	FindClientBySecretCached(ctx context.Context, clientSecret string) (Client, error)
 }

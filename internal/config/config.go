@@ -14,7 +14,7 @@ import (
 type Config struct {
 	App      AppConfig
 	Postgres PostgresDatabaseConfig
-	Redis    RedisConfig
+	Valkey   ValkeyConfig
 	JWT      JWTConfig
 	Mail     MailConfig
 }
@@ -32,7 +32,7 @@ type PostgresDatabaseConfig struct {
 	Port     string
 }
 
-type RedisConfig struct {
+type ValkeyConfig struct {
 	Host string
 	Port string
 }
@@ -111,9 +111,9 @@ func parseConfig() (*Config, error) {
 			Name:     os.Getenv("PG_DB_NAME"),
 			Port:     os.Getenv("PG_DB_PORT"),
 		},
-		Redis: RedisConfig{
-			Host: os.Getenv("REDIS_HOST"),
-			Port: os.Getenv("REDIS_PORT"),
+		Valkey: ValkeyConfig{
+			Host: os.Getenv("VALKEY_HOST"),
+			Port: os.Getenv("VALKEY_PORT"),
 		},
 		JWT: JWTConfig{
 			Secret:            os.Getenv("JWT_SECRET"),
@@ -141,8 +141,8 @@ func validate(c *Config) error {
 		{c.Postgres.Password, "PG_DB_PASSWORD"},
 		{c.Postgres.Name, "PG_DB_NAME"},
 		{c.Postgres.Port, "PG_DB_PORT"},
-		{c.Redis.Host, "REDIS_HOST"},
-		{c.Redis.Port, "REDIS_PORT"},
+		{c.Valkey.Host, "VALKEY_HOST"},
+		{c.Valkey.Port, "VALKEY_PORT"},
 		{c.JWT.Secret, "JWT_SECRET"},
 		{c.Mail.Host, "MAIL_HOST"},
 		{c.Mail.Username, "MAIL_USERNAME"},
@@ -167,8 +167,8 @@ func validate(c *Config) error {
 		return errors.ValidationError("invalid PG_DB_PORT", err)
 	}
 
-	if _, err := strconv.Atoi(c.Redis.Port); err != nil {
-		return errors.ValidationError("invalid REDIS_PORT", err)
+	if _, err := strconv.Atoi(c.Valkey.Port); err != nil {
+		return errors.ValidationError("invalid VALKEY_PORT", err)
 	}
 
 	if len(c.JWT.Secret) < 32 {

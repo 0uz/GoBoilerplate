@@ -5,7 +5,7 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      redis:
+      valkey:
         condition: service_healthy
       pgdb:
         condition: service_healthy
@@ -18,8 +18,8 @@ services:
       PG_DB_PASSWORD: ${PG_DB_PASSWORD}
       PG_DB_NAME: ${PG_DB_NAME}
       PG_DB_PORT: ${PG_DB_PORT}
-      REDIS_HOST: redis
-      REDIS_PORT: ${REDIS_PORT}
+      VALKEY_HOST: valkey
+      VALKEY_PORT: ${VALKEY_PORT}
       JWT_SECRET: ${JWT_SECRET}
       JWT_ACCESS_EXPIRATION: ${JWT_ACCESS_EXPIRATION}
       JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION}
@@ -59,14 +59,14 @@ services:
     networks:
       - app-network
 
-  redis:
-    image: redis:latest
-    container_name: goauthboiler-redis
+  valkey:
+    image: valkey/valkey:latest
+    container_name: goauthboiler-valkey
     ports:
-      - "${REDIS_PORT}:6379"
-    command: redis-server
+      - "${VALKEY_PORT}:6379"
+    command: valkey-server
     volumes:
-      - redis-data:/data
+      - valkey-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 1s
@@ -77,7 +77,7 @@ services:
 
 volumes:
   postgres_data:
-  redis-data:
+  valkey-data:
 
 networks:
   app-network:

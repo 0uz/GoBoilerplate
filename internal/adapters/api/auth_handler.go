@@ -104,9 +104,9 @@ func (h *AuthHandler) LoginAnonymousUser(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *AuthHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
-	user := util.GetAuthenticatedUser(r)
-	if user == nil {
-		resp.Error(w, errors.UnauthorizedError("User not found", nil))
+	user, err := util.GetAuthenticatedUser(r)
+	if err != nil {
+		resp.Error(w, err)
 		return
 	}
 
@@ -119,9 +119,9 @@ func (h *AuthHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) LogoutAll(w http.ResponseWriter, r *http.Request) {
-	user := util.GetAuthenticatedUser(r)
-	if user == nil {
-		resp.Error(w, errors.UnauthorizedError("User not found", nil))
+	user, err := util.GetAuthenticatedUser(r)
+	if err != nil {
+		resp.Error(w, err)
 		return
 	}
 

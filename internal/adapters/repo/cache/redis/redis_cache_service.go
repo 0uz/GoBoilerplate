@@ -51,7 +51,7 @@ func NewRedisCacheService(client *redis.Client) RedisCacheService {
 }
 
 func prepareURL() string {
-	return fmt.Sprintf("redis://%s:%s", config.Get().Redis.Host, config.Get().Redis.Port)
+	return fmt.Sprintf("redis://%s:%s", config.Get().Valkey.Host, config.Get().Valkey.Port)
 }
 
 func buildRedisFullKey(prefix, key string) string {
