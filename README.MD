@@ -4,23 +4,26 @@ A robust authentication boilerplate built with Go, featuring JWT authentication,
 
 ## Features
 
-- JWT-based authentication
-- User registration and login
-- Anonymous user support
+- JWT-based authentication system
+- Clean Architecture implementation with clear separation of concerns
+- User management (registration, login, profile)
+- Role-based access control (RBAC)
+- Multi-device session management
 - PostgreSQL database integration with GORM
-- Redis cache integration for improved performance
-- RESTful API endpoints
-- Environment variable configuration
-- Clean Architecture implementation
+- Valkey caching for improved performance
+- RESTful API endpoints with middleware support
 - Structured logging with logrus
+- Docker and Docker Compose support
+- Postman collection for API testing
 
 ## Prerequisites
-- Go 1.23+
+
+- Go 1.23.4 or higher
 - PostgreSQL
 - Redis
-- Docker (optional)
+- Docker and Docker Compose (optional)
 
-## Setup
+## Setup and Installation
 1. Set up environment variables (create `.env` file):
 ```bash
 # Server Configuration
@@ -45,39 +48,33 @@ JWT_SECRET=s3cr3t
 JWT_ACCESS_EXPIRATION=1h
 JWT_REFRESH_EXPIRATION=5h
 ```
+## API Documentation
 
-3. Install dependencies:
-```bash
-go mod download
-```
+### Authentication
+All endpoints require `x-client-key` header
 
-4. Run with Docker (optional):
-```bash
-docker-compose up -d
-```
+#### User Management
+- `POST /users/registration` - Register a new user
+- `POST /users/login` - Login and receive JWT tokens
+- `GET /users/me` - Get current user profile
 
-   Or run locally:
-```bash
-go run cmd/main.go
-```
+#### Authentication Management
+- `POST /auth/token/refresh` - Refresh JWT token
+- `POST /auth/logout` - Logout current session
+- `POST /auth/logout/all` - Logout from all devices
 
-## API Endpoints
-
-### Health Check Endpoints
+#### Health Check
 - `GET /live` - Liveness probe
 - `GET /ready` - Readiness probe (checks database connection)
 
-### Authentication Endpoints
-All endpoints require `x-client-key` header
-You can import postman collection to test all endpoints
-- `POST /users/registration` - Register a new user
-- `POST /users/login` - Login and receive JWT tokens
-- `POST /auth/token/refresh` - Refresh JWT token
-- `POST /auth/logout` - Logout
-- `POST /auth/logout/all` - Logout from all devices
-- `GET /users/me` - Get current user
+## Testing
 
+Import the provided Postman collection (`boilerplate.postman_collection.json`) to test all available endpoints.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details
+This project is licensed under the MIT License - see the LICENSE file for details.
