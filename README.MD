@@ -38,10 +38,10 @@ PG_DB_PASSWORD=123456
 PG_DB_NAME=postgres
 
 # Redis Configuration
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=  # if required
-REDIS_DB=0      # default database
+VALKEY_HOST=localhost
+VALKEY_PORT=6379
+VALKEY_PASSWORD=  # if required
+VALKEY_DB=0      # default database
 
 # JWT Configuration
 JWT_SECRET=s3cr3t
