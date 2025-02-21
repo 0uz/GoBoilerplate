@@ -13,6 +13,7 @@ import (
 )
 
 func ConnectDB() (*gorm.DB, error) {
+	conf := config.Get().Postgres
 	db, err := gorm.Open(postgres.Open(prepareDSN()), &gorm.Config{
 		Logger: config.NewGormLogger(),
 	})
@@ -26,9 +27,9 @@ func ConnectDB() (*gorm.DB, error) {
 		return nil, errors.InternalError("Failed to get database instance", err)
 	}
 
-	sqlDB.SetMaxOpenConns(20)
-	sqlDB.SetMaxIdleConns(25)
-	sqlDB.SetConnMaxLifetime(5 * time.Minute)
+	sqlDB.SetMaxOpenConns(conf.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(conf.MaxIdleConns)
+	sqlDB.SetConnMaxLifetime(time.Duration(conf.ConnMaxLifetimeMinutes) * time.Minute)
 
 	return db, nil
 }
@@ -39,8 +40,8 @@ func CloseDatabaseConnection(db *gorm.DB, logger *logrus.Logger) error {
 		return errors.InternalError("Failed to get database instance", err)
 	}
 
-	// Bağlantıları nazikçe kapat
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	conf := config.Get().Postgres
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(conf.CloseTimeoutSeconds)*time.Second)
 	defer cancel()
 
 	if err := sqlDB.PingContext(ctx); err == nil {
@@ -69,5 +70,6 @@ func IsReady(db *gorm.DB) bool {
 
 func prepareDSN() string {
 	conf := config.Get().Postgres
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Europe/Istanbul", conf.Host, conf.User, conf.Password, conf.Name, conf.Port)
+	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=%s",
+		conf.Host, conf.User, conf.Password, conf.Name, conf.Port, conf.TimeZone)
 }

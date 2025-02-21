@@ -12,11 +12,12 @@ import (
 )
 
 type Config struct {
-	App      AppConfig
-	Postgres PostgresDatabaseConfig
-	Valkey   ValkeyConfig
-	JWT      JWTConfig
-	Mail     MailConfig
+	App        AppConfig
+	Postgres   PostgresDatabaseConfig
+	Valkey     ValkeyConfig
+	JWT        JWTConfig
+	Mail       MailConfig
+	Cache      CacheConfig
 }
 
 type AppConfig struct {
@@ -25,11 +26,16 @@ type AppConfig struct {
 }
 
 type PostgresDatabaseConfig struct {
-	Host     string
-	User     string
-	Password string
-	Name     string
-	Port     string
+	Host                   string
+	User                   string
+	Password               string
+	Name                   string
+	Port                   string
+	TimeZone               string
+	MaxOpenConns           int
+	MaxIdleConns           int
+	ConnMaxLifetimeMinutes int
+	CloseTimeoutSeconds    int
 }
 
 type ValkeyConfig struct {
@@ -48,6 +54,10 @@ type MailConfig struct {
 	Port     int
 	Username string
 	Password string
+}
+
+type CacheConfig struct {
+	SizeMB int
 }
 
 var (
@@ -99,17 +109,27 @@ func parseConfig() (*Config, error) {
 		return nil, errors.ValidationError("invalid MAIL_PORT", err)
 	}
 
+	maxOpenConns, _ := strconv.Atoi(getEnvOrDefault("PG_DB_MAX_OPEN_CONNS", "20"))
+	maxIdleConns, _ := strconv.Atoi(getEnvOrDefault("PG_DB_MAX_IDLE_CONNS", "25"))
+	connMaxLifetimeMinutes, _ := strconv.Atoi(getEnvOrDefault("PG_DB_CONN_MAX_LIFETIME_MINUTES", "5"))
+	closeTimeoutSeconds, _ := strconv.Atoi(getEnvOrDefault("PG_DB_CLOSE_TIMEOUT_SECONDS", "5"))
+	cacheSizeMB, _ := strconv.Atoi(getEnvOrDefault("CACHE_SIZE_MB", "100"))
 	return &Config{
 		App: AppConfig{
 			Port:     getEnvOrDefault("PORT", "8080"),
 			V1Prefix: getEnvOrDefault("V1_PREFIX", "/api/v1"),
 		},
 		Postgres: PostgresDatabaseConfig{
-			Host:     os.Getenv("PG_DB_HOST"),
-			User:     os.Getenv("PG_DB_USER"),
-			Password: os.Getenv("PG_DB_PASSWORD"),
-			Name:     os.Getenv("PG_DB_NAME"),
-			Port:     os.Getenv("PG_DB_PORT"),
+			Host:                   os.Getenv("PG_DB_HOST"),
+			User:                   os.Getenv("PG_DB_USER"),
+			Password:               os.Getenv("PG_DB_PASSWORD"),
+			Name:                   os.Getenv("PG_DB_NAME"),
+			Port:                   os.Getenv("PG_DB_PORT"),
+			TimeZone:               getEnvOrDefault("PG_DB_TIMEZONE", "Europe/Istanbul"),
+			MaxOpenConns:           maxOpenConns,
+			MaxIdleConns:           maxIdleConns,
+			ConnMaxLifetimeMinutes: connMaxLifetimeMinutes,
+			CloseTimeoutSeconds:    closeTimeoutSeconds,
 		},
 		Valkey: ValkeyConfig{
 			Host: os.Getenv("VALKEY_HOST"),
@@ -125,6 +145,9 @@ func parseConfig() (*Config, error) {
 			Port:     mailPort,
 			Username: os.Getenv("MAIL_USERNAME"),
 			Password: os.Getenv("MAIL_PASSWORD"),
+		},
+		Cache: CacheConfig{
+			SizeMB: cacheSizeMB,
 		},
 	}, nil
 }

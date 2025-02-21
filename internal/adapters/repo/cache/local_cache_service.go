@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/coocood/freecache"
+	"github.com/ouz/goauthboilerplate/internal/config"
+	"github.com/sirupsen/logrus"
 )
 
 type Duration time.Duration
@@ -24,12 +26,15 @@ type LocalCacheService interface {
 }
 
 type cache struct {
-	cache *freecache.Cache
+	cache  *freecache.Cache
+	logger *logrus.Logger
 }
 
-func NewLocalCacheService() LocalCacheService {
+func NewLocalCacheService(logger *logrus.Logger) LocalCacheService {
+	conf := config.Get().Cache
 	return &cache{
-		cache: freecache.NewCache(100 * 1024 * 1024),
+		cache:  freecache.NewCache(conf.SizeMB * 1024 * 1024),
+		logger: logger,
 	}
 }
 
@@ -41,9 +46,11 @@ func (c *cache) Set(prefix, key string, ttl time.Duration, value interface{}) {
 	fullKey := buildFullKey(prefix, key)
 
 	jsonData, err := json.Marshal(value)
-
 	if err != nil {
-		// TODO LOG
+		c.logger.WithError(err).WithFields(logrus.Fields{
+			"prefix": prefix,
+			"key":    key,
+		}).Error("Failed to marshal cache value")
 		return
 	}
 
