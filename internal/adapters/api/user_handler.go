@@ -1,17 +1,19 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 
 	resp "github.com/ouz/goauthboilerplate/internal/adapters/api/response"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
-	"github.com/ouz/goauthboilerplate/internal/adapters/api/validator"
 	authDto "github.com/ouz/goauthboilerplate/internal/application/auth/dto"
 	userDto "github.com/ouz/goauthboilerplate/internal/application/user/dto"
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
-	"github.com/ouz/goauthboilerplate/pkg/errors"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	emailConfirmationTemplatePath   = "internal/ports/api/template/email_confirmation_response.html"
+	notFoundTemplatePath            = "internal/ports/api/template/not_found.html"
 )
 
 type UserHandler struct {
@@ -28,17 +30,13 @@ func NewUserHandler(logger *logrus.Logger, userService user.UserService) *UserHa
 
 func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var request authDto.UserRegisterRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		resp.Error(w, errors.BadRequestError("Invalid request body"))
-		return
-	}
-
-	if err := validator.Validator.Struct(request); err != nil {
-		resp.Error(w, errors.BadRequestError("Invalid request body"))
+	if err := util.DecodeAndValidate(r, &request); err != nil {
+		resp.Error(w, err)
 		return
 	}
 
 	if err := h.userService.Register(r.Context(), request); err != nil {
+		h.logger.WithError(err).WithField("email", request.Email).Error("Failed to register user")
 		resp.Error(w, err)
 		return
 	}
@@ -49,6 +47,7 @@ func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) RegisterAnonymousUser(w http.ResponseWriter, r *http.Request) {
 	user, err := h.userService.RegisterAnonymousUser(r.Context())
 	if err != nil {
+		h.logger.WithError(err).Error("Failed to register anonymous user")
 		resp.Error(w, err)
 		return
 	}
@@ -73,7 +72,7 @@ func (h *UserHandler) ConfirmUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.ServeFile(w, r, "internal/ports/api/template/email_confirmation_response.html")
+	http.ServeFile(w, r, emailConfirmationTemplatePath)
 }
 
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
@@ -90,5 +89,5 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func returnNotFound(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "internal/ports/api/template/not_found.html")
+	http.ServeFile(w, r, notFoundTemplatePath)
 }

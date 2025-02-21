@@ -27,7 +27,7 @@ func SetUpAuthRoutes(mainRouter *http.ServeMux, authHandler *AuthHandler, userHa
 		middleware.HasRoles(user.UserRoleUser),
 	)
 	authRouter.Handle("POST /logout", protectedUser(http.HandlerFunc(authHandler.LogoutUser)))
-	authRouter.Handle("POST /logout/all", clientSecretMiddleware(http.HandlerFunc(authHandler.LogoutAll)))
+	authRouter.Handle("POST /logout/all", protectedUser(http.HandlerFunc(authHandler.LogoutAll)))
 
 	mainRouter.Handle("/auth/", http.StripPrefix("/auth", authRouter)) // Prefix all user routes with /user
 }
