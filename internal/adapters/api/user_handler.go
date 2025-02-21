@@ -7,8 +7,8 @@ import (
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
 	authDto "github.com/ouz/goauthboilerplate/internal/application/auth/dto"
 	userDto "github.com/ouz/goauthboilerplate/internal/application/user/dto"
+	"github.com/ouz/goauthboilerplate/internal/config"
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -17,11 +17,11 @@ const (
 )
 
 type UserHandler struct {
-	logger      *logrus.Logger
+	logger      *config.Logger
 	userService user.UserService
 }
 
-func NewUserHandler(logger *logrus.Logger, userService user.UserService) *UserHandler {
+func NewUserHandler(logger *config.Logger, userService user.UserService) *UserHandler {
 	return &UserHandler{
 		logger:      logger,
 		userService: userService,

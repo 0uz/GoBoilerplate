@@ -7,16 +7,16 @@ import (
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
 	authDto "github.com/ouz/goauthboilerplate/internal/application/auth/dto"
 	authService "github.com/ouz/goauthboilerplate/internal/domain/auth"
+	"github.com/ouz/goauthboilerplate/internal/config"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 type AuthHandler struct {
-	logger      *logrus.Logger
+	logger      *config.Logger
 	authService authService.AuthService
 }
 
-func NewAuthHandler(logger *logrus.Logger, authService authService.AuthService) *AuthHandler {
+func NewAuthHandler(logger *config.Logger, authService authService.AuthService) *AuthHandler {
 	return &AuthHandler{
 		logger:      logger,
 		authService: authService,

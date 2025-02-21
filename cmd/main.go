@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sirupsen/logrus"
 
 	"github.com/ouz/goauthboilerplate/internal/adapters/api"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/middleware"
@@ -29,7 +28,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var logger *logrus.Logger
+var logger *config.Logger
 
 func main() {
 	logger = config.NewLogger()
@@ -102,7 +101,7 @@ func run() error {
 	return nil
 }
 
-func addV1Prefix(r *http.ServeMux, logger *logrus.Logger) *http.ServeMux {
+func addV1Prefix(r *http.ServeMux, logger *config.Logger) *http.ServeMux {
 	// tokenBucket := middleware.NewTokenBucket(1, 3) // Reverse proxy rate limiter preferred
 	chain := middleware.Chain(
 		// middleware.RateLimitMiddleware(tokenBucket),

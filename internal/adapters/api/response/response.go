@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/ouz/goauthboilerplate/internal/config"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
-var logger *logrus.Logger
+var logger *config.Logger
 
-func InitResponseLogger(l *logrus.Logger) {
+func InitResponseLogger(l *config.Logger) {
 	logger = l
 }
 

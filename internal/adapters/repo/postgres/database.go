@@ -7,7 +7,6 @@ import (
 
 	"github.com/ouz/goauthboilerplate/internal/config"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -34,7 +33,7 @@ func ConnectDB() (*gorm.DB, error) {
 	return db, nil
 }
 
-func CloseDatabaseConnection(db *gorm.DB, logger *logrus.Logger) error {
+func CloseDatabaseConnection(db *gorm.DB, logger *config.Logger) error {
 	sqlDB, err := db.DB()
 	if err != nil {
 		return errors.InternalError("Failed to get database instance", err)

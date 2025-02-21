@@ -1,28 +1,43 @@
 package config
 
 import (
+	"context"
+	"errors"
 	"os"
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"context"
-	"errors"
-
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
 	"gorm.io/gorm/utils"
 )
 
-var (
-	logger *logrus.Logger
+const (
+	envAppEnvironment = "APP_ENV"
+	envProdValue      = "PROD"
+
+	// GormLogger defaults
+	defaultSlowThreshold = time.Second // 1 second
+	defaultSourceField   = "file"
 )
 
+// Logger is a singleton instance of the logger
+type Logger struct {
+	*logrus.Logger
+}
 
-func NewLogger() *logrus.Logger {
-	logger = logrus.New()
+var logger *Logger
 
-	logger.SetFormatter(&logrus.JSONFormatter{
+// NewLogger creates a new logger instance with JSON formatting and proper log levels
+func NewLogger() *Logger {
+	if logger != nil {
+		return logger
+	}
+
+	l := logrus.New()
+
+	l.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: time.RFC3339Nano,
 		FieldMap: logrus.FieldMap{
 			logrus.FieldKeyTime:  "time",
@@ -32,16 +47,18 @@ func NewLogger() *logrus.Logger {
 		},
 	})
 
-	if os.Getenv("APP_ENV") == "PROD" {
-		logger.SetLevel(logrus.InfoLevel)
+	// Set log level based on environment
+	if os.Getenv(envAppEnvironment) == envProdValue {
+		l.SetLevel(logrus.InfoLevel)
 	} else {
-		logger.SetLevel(logrus.DebugLevel)
+		l.SetLevel(logrus.DebugLevel)
 	}
-	logger.SetLevel(logrus.DebugLevel)
 
+	logger = &Logger{l}
 	return logger
 }
 
+// GormLogger implements GORM's logger interface
 type GormLogger struct {
 	SlowThreshold         time.Duration
 	SourceField           string
@@ -49,8 +66,11 @@ type GormLogger struct {
 	Debug                 bool
 }
 
-func NewGormLogger() *GormLogger {
+// NewGormLogger creates a new GORM logger instance
+func NewGormLogger() gormlogger.Interface {
 	return &GormLogger{
+		SlowThreshold:         defaultSlowThreshold,
+		SourceField:           defaultSourceField,
 		SkipErrRecordNotFound: true,
 		Debug:                 true,
 	}

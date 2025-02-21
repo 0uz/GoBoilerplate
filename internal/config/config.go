@@ -3,21 +3,64 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
-	"github.com/sirupsen/logrus"
+)
+
+const (
+	// Environment variable names
+	envPort                 = "PORT"
+	envV1Prefix             = "V1_PREFIX"
+	envPGHost               = "PG_DB_HOST"
+	envPGUser               = "PG_DB_USER"
+	envPGPassword           = "PG_DB_PASSWORD"
+	envPGName               = "PG_DB_NAME"
+	envPGPort               = "PG_DB_PORT"
+	envPGTimeZone           = "PG_DB_TIMEZONE"
+	envPGMaxOpenConns       = "PG_DB_MAX_OPEN_CONNS"
+	envPGMaxIdleConns       = "PG_DB_MAX_IDLE_CONNS"
+	envPGConnMaxLifetimeMin = "PG_DB_CONN_MAX_LIFETIME_MINUTES"
+	envPGCloseTimeoutSec    = "PG_DB_CLOSE_TIMEOUT_SECONDS"
+	envValkeyHost           = "VALKEY_HOST"
+	envValkeyPort           = "VALKEY_PORT"
+	envJWTSecret            = "JWT_SECRET"
+	envJWTAccessExpiration  = "JWT_ACCESS_EXPIRATION"
+	envJWTRefreshExpiration = "JWT_REFRESH_EXPIRATION"
+	envMailHost             = "MAIL_HOST"
+	envMailPort             = "MAIL_PORT"
+	envMailUsername         = "MAIL_USERNAME"
+	envMailPassword         = "MAIL_PASSWORD"
+	envCacheSizeMB          = "CACHE_SIZE_MB"
+
+	// Default values
+	defaultPort                 = "8080"
+	defaultV1Prefix             = "/api/v1"
+	defaultPGTimeZone           = "Europe/Istanbul"
+	defaultPGMaxOpenConns       = 20
+	defaultPGMaxIdleConns       = 25
+	defaultPGConnMaxLifetimeMin = 5
+	defaultPGCloseTimeoutSec    = 5
+	defaultCacheSizeMB          = 100
+
+	// Validation constants
+	minJWTSecretLength = 32
+	minCacheSizeMB     = 10
+	maxCacheSizeMB     = 1024
+	minDBConnections   = 1
+	maxDBConnections   = 100
 )
 
 type Config struct {
-	App        AppConfig
-	Postgres   PostgresDatabaseConfig
-	Valkey     ValkeyConfig
-	JWT        JWTConfig
-	Mail       MailConfig
-	Cache      CacheConfig
+	App      AppConfig
+	Postgres PostgresDatabaseConfig
+	Valkey   ValkeyConfig
+	JWT      JWTConfig
+	Mail     MailConfig
+	Cache    CacheConfig
 }
 
 type AppConfig struct {
@@ -64,7 +107,7 @@ var (
 	conf *Config
 )
 
-func Load(logger *logrus.Logger) error {
+func Load(logger *Logger) error {
 	if err := loadEnv(logger); err != nil {
 		logger.Error("Loading environment variables", "error", err)
 	}
@@ -75,7 +118,7 @@ func Load(logger *logrus.Logger) error {
 	}
 
 	if err := validate(config); err != nil {
-		return fmt.Errorf("validating config: %w", err)
+		return err
 	}
 
 	conf = config
@@ -86,65 +129,67 @@ func Get() *Config {
 	return conf
 }
 
-func loadEnv(logger *logrus.Logger) error {
-	if err := godotenv.Load("./.env"); err != nil {
+func loadEnv(logger *Logger) error {
+	envPath := filepath.Join(".", ".env")
+	if err := godotenv.Load(envPath); err != nil {
 		logger.Info("No .env file found, using environment variables")
 	}
 	return nil
 }
 
 func parseConfig() (*Config, error) {
-	accessExp, err := time.ParseDuration(os.Getenv("JWT_ACCESS_EXPIRATION"))
+	accessExp, err := time.ParseDuration(os.Getenv(envJWTAccessExpiration))
 	if err != nil {
 		return nil, errors.ValidationError("invalid JWT_ACCESS_EXPIRATION", err)
 	}
 
-	refreshExp, err := time.ParseDuration(os.Getenv("JWT_REFRESH_EXPIRATION"))
+	refreshExp, err := time.ParseDuration(os.Getenv(envJWTRefreshExpiration))
 	if err != nil {
 		return nil, errors.ValidationError("invalid JWT_REFRESH_EXPIRATION", err)
 	}
 
-	mailPort, err := strconv.Atoi(os.Getenv("MAIL_PORT"))
+	mailPort, err := strconv.Atoi(os.Getenv(envMailPort))
 	if err != nil {
 		return nil, errors.ValidationError("invalid MAIL_PORT", err)
 	}
 
-	maxOpenConns, _ := strconv.Atoi(getEnvOrDefault("PG_DB_MAX_OPEN_CONNS", "20"))
-	maxIdleConns, _ := strconv.Atoi(getEnvOrDefault("PG_DB_MAX_IDLE_CONNS", "25"))
-	connMaxLifetimeMinutes, _ := strconv.Atoi(getEnvOrDefault("PG_DB_CONN_MAX_LIFETIME_MINUTES", "5"))
-	closeTimeoutSeconds, _ := strconv.Atoi(getEnvOrDefault("PG_DB_CLOSE_TIMEOUT_SECONDS", "5"))
-	cacheSizeMB, _ := strconv.Atoi(getEnvOrDefault("CACHE_SIZE_MB", "100"))
+	maxOpenConns, _ := strconv.Atoi(getEnvOrDefault(envPGMaxOpenConns, strconv.Itoa(defaultPGMaxOpenConns)))
+	maxIdleConns, _ := strconv.Atoi(getEnvOrDefault(envPGMaxIdleConns, strconv.Itoa(defaultPGMaxIdleConns)))
+	connMaxLifetimeMinutes, _ := strconv.Atoi(getEnvOrDefault(envPGConnMaxLifetimeMin, strconv.Itoa(defaultPGConnMaxLifetimeMin)))
+	closeTimeoutSeconds, _ := strconv.Atoi(getEnvOrDefault(envPGCloseTimeoutSec, strconv.Itoa(defaultPGCloseTimeoutSec)))
+	cacheSizeMB, _ := strconv.Atoi(getEnvOrDefault(envCacheSizeMB, strconv.Itoa(defaultCacheSizeMB)))
+
 	return &Config{
 		App: AppConfig{
-			Port:     getEnvOrDefault("PORT", "8080"),
-			V1Prefix: getEnvOrDefault("V1_PREFIX", "/api/v1"),
+			Port:     getEnvOrDefault(envPort, defaultPort),
+			V1Prefix: getEnvOrDefault(envV1Prefix, defaultV1Prefix),
 		},
 		Postgres: PostgresDatabaseConfig{
-			Host:                   os.Getenv("PG_DB_HOST"),
-			User:                   os.Getenv("PG_DB_USER"),
-			Password:               os.Getenv("PG_DB_PASSWORD"),
-			Name:                   os.Getenv("PG_DB_NAME"),
-			Port:                   os.Getenv("PG_DB_PORT"),
-			TimeZone:               getEnvOrDefault("PG_DB_TIMEZONE", "Europe/Istanbul"),
+			Host:                   os.Getenv(envPGHost),
+			User:                   os.Getenv(envPGUser),
+			Password:               os.Getenv(envPGPassword),
+			Name:                   os.Getenv(envPGName),
+			Port:                   os.Getenv(envPGPort),
+			TimeZone:               getEnvOrDefault(envPGTimeZone, defaultPGTimeZone),
 			MaxOpenConns:           maxOpenConns,
 			MaxIdleConns:           maxIdleConns,
 			ConnMaxLifetimeMinutes: connMaxLifetimeMinutes,
 			CloseTimeoutSeconds:    closeTimeoutSeconds,
 		},
 		Valkey: ValkeyConfig{
-			Host: os.Getenv("VALKEY_HOST"),
-			Port: os.Getenv("VALKEY_PORT"),
+			Host: os.Getenv(envValkeyHost),
+			Port: os.Getenv(envValkeyPort),
 		},
 		JWT: JWTConfig{
-			Secret:            os.Getenv("JWT_SECRET"),
+			Secret:            os.Getenv(envJWTSecret),
 			AccessExpiration:  accessExp,
 			RefreshExpiration: refreshExp,
 		},
 		Mail: MailConfig{
-			Host:     os.Getenv("MAIL_HOST"),
+			Host:     os.Getenv(envMailHost),
 			Port:     mailPort,
-			Username: os.Getenv("MAIL_USERNAME"),
-			Password: os.Getenv("MAIL_PASSWORD"),
+			Username: os.Getenv(envMailUsername),
+			Password: os.Getenv(envMailPassword),
 		},
 		Cache: CacheConfig{
 			SizeMB: cacheSizeMB,
@@ -157,19 +202,19 @@ func validate(c *Config) error {
 		value string
 		name  string
 	}{
-		{c.App.Port, "PORT"},
-		{c.App.V1Prefix, "V1_PREFIX"},
-		{c.Postgres.Host, "PG_DB_HOST"},
-		{c.Postgres.User, "PG_DB_USER"},
-		{c.Postgres.Password, "PG_DB_PASSWORD"},
-		{c.Postgres.Name, "PG_DB_NAME"},
-		{c.Postgres.Port, "PG_DB_PORT"},
-		{c.Valkey.Host, "VALKEY_HOST"},
-		{c.Valkey.Port, "VALKEY_PORT"},
-		{c.JWT.Secret, "JWT_SECRET"},
-		{c.Mail.Host, "MAIL_HOST"},
-		{c.Mail.Username, "MAIL_USERNAME"},
-		{c.Mail.Password, "MAIL_PASSWORD"},
+		{c.App.Port, envPort},
+		{c.App.V1Prefix, envV1Prefix},
+		{c.Postgres.Host, envPGHost},
+		{c.Postgres.User, envPGUser},
+		{c.Postgres.Password, envPGPassword},
+		{c.Postgres.Name, envPGName},
+		{c.Postgres.Port, envPGPort},
+		{c.Valkey.Host, envValkeyHost},
+		{c.Valkey.Port, envValkeyPort},
+		{c.JWT.Secret, envJWTSecret},
+		{c.Mail.Host, envMailHost},
+		{c.Mail.Username, envMailUsername},
+		{c.Mail.Password, envMailPassword},
 	}
 
 	for _, check := range checks {
@@ -194,8 +239,22 @@ func validate(c *Config) error {
 		return errors.ValidationError("invalid VALKEY_PORT", err)
 	}
 
-	if len(c.JWT.Secret) < 32 {
-		return errors.ValidationError("JWT_SECRET must be at least 32 characters long", nil)
+	if len(c.JWT.Secret) < minJWTSecretLength {
+		return errors.ValidationError(fmt.Sprintf("JWT_SECRET must be at least %d characters long", minJWTSecretLength), nil)
+	}
+
+	// Validate cache size
+	if c.Cache.SizeMB < minCacheSizeMB || c.Cache.SizeMB > maxCacheSizeMB {
+		return errors.ValidationError(fmt.Sprintf("CACHE_SIZE_MB must be between %d and %d", minCacheSizeMB, maxCacheSizeMB), nil)
+	}
+
+	// Validate database connections
+	if c.Postgres.MaxOpenConns < minDBConnections || c.Postgres.MaxOpenConns > maxDBConnections {
+		return errors.ValidationError(fmt.Sprintf("PG_DB_MAX_OPEN_CONNS must be between %d and %d", minDBConnections, maxDBConnections), nil)
+	}
+
+	if c.Postgres.MaxIdleConns < minDBConnections || c.Postgres.MaxIdleConns > c.Postgres.MaxOpenConns {
+		return errors.ValidationError(fmt.Sprintf("PG_DB_MAX_IDLE_CONNS must be between %d and %d", minDBConnections, c.Postgres.MaxOpenConns), nil)
 	}
 
 	return nil

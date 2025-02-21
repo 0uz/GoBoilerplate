@@ -13,7 +13,6 @@ import (
 	"github.com/ouz/goauthboilerplate/internal/domain/auth"
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -23,13 +22,13 @@ const (
 )
 
 type authService struct {
-	logger         *logrus.Logger
+	logger         *config.Logger
 	authRepository auth.AuthRepository
 	userService    user.UserService
 	redisCache     redis.RedisCacheService
 }
 
-func NewAuthService(logger *logrus.Logger, ar auth.AuthRepository, us user.UserService, rc redis.RedisCacheService) auth.AuthService {
+func NewAuthService(logger *config.Logger, ar auth.AuthRepository, us user.UserService, rc redis.RedisCacheService) auth.AuthService {
 	return &authService{
 		logger:         logger,
 		authRepository: ar,

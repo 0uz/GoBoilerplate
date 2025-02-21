@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"github.com/sirupsen/logrus"
+	"github.com/ouz/goauthboilerplate/internal/config"
 )
 
-func Recovery(logger *logrus.Logger) Middleware {
+func Recovery(logger *config.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
@@ -15,7 +15,7 @@ func Recovery(logger *logrus.Logger) Middleware {
 					stack := string(debug.Stack())
 
 					// Log entry oluştur
-					entry := logger.WithFields(logrus.Fields{
+					entry := logger.WithFields(map[string]any{
 						"error":  err,
 						"stack":  stack,
 						"path":   r.URL.EscapedPath(),

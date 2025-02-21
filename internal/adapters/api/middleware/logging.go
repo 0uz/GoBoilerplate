@@ -7,7 +7,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/sirupsen/logrus"
+	"github.com/ouz/goauthboilerplate/internal/config"
 )
 
 var (
@@ -36,7 +36,7 @@ var (
 	)
 )
 
-func Logging(logger *logrus.Logger) Middleware {
+func Logging(logger *config.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
@@ -52,7 +52,7 @@ func Logging(logger *logrus.Logger) Middleware {
 			httpRequestDuration.WithLabelValues(r.Method, r.URL.Path).Observe(duration.Seconds())
 
 			// Log entry oluştur
-			entry := logger.WithFields(logrus.Fields{
+			entry := logger.WithFields(map[string]any{
 				"method":     r.Method,
 				"status":     wrapper.status,
 				"path":       r.URL.EscapedPath(),
