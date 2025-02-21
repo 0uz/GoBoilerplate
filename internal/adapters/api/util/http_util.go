@@ -11,9 +11,11 @@ import (
 	"github.com/ouz/goauthboilerplate/pkg/errors"
 )
 
-const AuthenticatedUserKey string = "auth_user"
+type ContextKey string
+
+const AuthenticatedUserKey ContextKey = "auth_user"
 const ClientHeader string = "x-client-key"
-const ClientKey string = "client"
+const ClientKey ContextKey = "client"
 
 func GetClient(ctx context.Context) (auth.Client, error) {
 	rawClient := ctx.Value(ClientKey)

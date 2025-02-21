@@ -25,7 +25,10 @@ func Recovery(logger *config.Logger) Middleware {
 					entry.Error("panic recovered")
 
 					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte("Internal Server Error"))
+
+					if _, writeErr := w.Write([]byte("Internal Server Error")); writeErr != nil {
+						logger.WithError(writeErr).Error("Failed to write error response")
+					}
 				}
 			}()
 

@@ -8,7 +8,6 @@ import (
 
 	"github.com/coocood/freecache"
 	"github.com/ouz/goauthboilerplate/internal/config"
-	"github.com/sirupsen/logrus"
 )
 
 type Duration time.Duration
@@ -27,10 +26,10 @@ type LocalCacheService interface {
 
 type cache struct {
 	cache  *freecache.Cache
-	logger *logrus.Logger
+	logger *config.Logger
 }
 
-func NewLocalCacheService(logger *logrus.Logger) LocalCacheService {
+func NewLocalCacheService(logger *config.Logger) LocalCacheService {
 	conf := config.Get().Cache
 	return &cache{
 		cache:  freecache.NewCache(conf.SizeMB * 1024 * 1024),
@@ -47,14 +46,20 @@ func (c *cache) Set(prefix, key string, ttl time.Duration, value interface{}) {
 
 	jsonData, err := json.Marshal(value)
 	if err != nil {
-		c.logger.WithError(err).WithFields(logrus.Fields{
+		c.logger.WithError(err).WithFields(map[string]any{
 			"prefix": prefix,
 			"key":    key,
 		}).Error("Failed to marshal cache value")
 		return
 	}
 
-	c.cache.Set([]byte(fullKey), jsonData, int(ttl.Seconds()))
+	if err := c.cache.Set([]byte(fullKey), jsonData, int(ttl.Seconds())); err != nil {
+		c.logger.WithError(err).WithFields(map[string]any{
+			"prefix": prefix,
+			"key":    key,
+		}).Error("Failed to set cache value")
+	}
+
 	keyPrefixMu.Lock()
 	defer keyPrefixMu.Unlock()
 
