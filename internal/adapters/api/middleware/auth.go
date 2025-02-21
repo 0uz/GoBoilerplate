@@ -3,41 +3,48 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/response"
+	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
 	"github.com/ouz/goauthboilerplate/internal/domain/auth"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
 )
 
-const AuthenticatedUserKey string = "auth_user"
-
-var (
-	errInvalidAuthFormat = "Invalid authorization header format"
-	errTokenRequired     = "Access token is required"
+const (
+	authorizationHeader = "Authorization"
+	bearerPrefix        = "Bearer"
 )
 
 func Protected(authService auth.AuthService) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authorization := r.Header.Get("Authorization")
-			if authorization == "" {
-				response.Error(w, errors.UnauthorizedError(errTokenRequired, nil))
+			authHeader := r.Header.Get(authorizationHeader)
+			if authHeader == "" {
+				response.Error(w, errors.UnauthorizedError("missing authorization header", nil))
 				return
 			}
 
-			if len(authorization) <= 7 || authorization[:7] != "Bearer " {
-				response.Error(w, errors.UnauthorizedError(errInvalidAuthFormat, nil))
+			parts := strings.Fields(authHeader)
+			if len(parts) != 2 {
+				response.Error(w, errors.UnauthorizedError("invalid authorization header format", nil))
 				return
 			}
 
-			accessToken := authorization[7:]
-			user, err := authService.ValidateTokenAndGetUser(r.Context(), accessToken)
+			if !strings.EqualFold(parts[0], bearerPrefix) {
+				response.Error(w, errors.UnauthorizedError("unsupported authorization type", nil))
+				return
+			}
+
+			token := parts[1]
+			user, err := authService.ValidateTokenAndGetUser(r.Context(), token)
 			if err != nil {
-				response.Error(w, errors.UnauthorizedError(err.Error(), err))
+				response.Error(w, errors.UnauthorizedError("invalid or expired token", err))
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), AuthenticatedUserKey, user)
+			// Add user to request context
+			ctx := context.WithValue(r.Context(), util.AuthenticatedUserKey, user)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

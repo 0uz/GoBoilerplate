@@ -17,17 +17,23 @@ func HasClientSecret(authService auth.AuthService) Middleware {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			clientSecret := util.ExtractClientSecret(r)
 			if clientSecret == "" {
-				response.Error(w, errors.UnauthorizedError("Client secret is required", nil))
+				response.Error(w, errors.UnauthorizedError("Client authentication required - missing client secret", nil))
 				return
 			}
 
 			client, err := authService.FindClientBySecretCached(r.Context(), clientSecret)
 			if err != nil {
-				response.Error(w, err)
+				response.Error(w, errors.UnauthorizedError("Invalid client credentials", err))
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), ClientKey, client)
+			if client.DeletedAt != nil {
+				response.Error(w, errors.ForbiddenError("Client is disabled", nil))
+				return
+			}
+
+			ctx := r.Context()
+			ctx = context.WithValue(ctx, util.ClientKey, client)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

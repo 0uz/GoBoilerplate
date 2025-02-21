@@ -13,6 +13,7 @@ const (
 	ErrCodeUnknown ErrorCode = iota + 1000
 	ErrCodeInternal
 	ErrCodeBadRequest
+	ErrCodeTooManyRequests
 
 	// Validation errors
 	ErrCodeValidation ErrorCode = iota + 2000
