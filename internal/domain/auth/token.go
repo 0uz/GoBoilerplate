@@ -36,8 +36,20 @@ type TokenClaims struct {
 	UserId string `json:"uid"`
 }
 
+// validateTokenInput validates the input parameters for token creation
+func validateTokenInput(userID string, tokenType TokenType, clientType string, jwtSecret string, expiration time.Duration) error {
+	if jwtSecret == "" {
+		return errors.ValidationError("JWT secret cannot be empty", nil)
+	}
+	return nil
+}
+
 // NewToken creates a new token instance with generated JWT
 func NewToken(userID string, tokenType TokenType, clientType string, jwtSecret string, expiration time.Duration) (*Token, error) {
+	if err := validateTokenInput(userID, tokenType, clientType, jwtSecret, expiration); err != nil {
+		return nil, err
+	}
+
 	jti := uuid.New().String()
 	now := time.Now()
 	expiresAt := now.Add(expiration)
@@ -70,6 +82,10 @@ func NewToken(userID string, tokenType TokenType, clientType string, jwtSecret s
 
 // Validate validates the token and returns its claims
 func (t *Token) Validate(jwtSecret string) (*TokenClaims, error) {
+	if jwtSecret == "" {
+		return nil, errors.ValidationError("JWT secret cannot be empty", nil)
+	}
+
 	if t.Revoked {
 		return nil, errors.UnauthorizedError("Token is revoked", nil)
 	}
