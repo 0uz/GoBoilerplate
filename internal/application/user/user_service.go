@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/ouz/goauthboilerplate/internal/adapters/repo/cache/redis"
@@ -12,6 +13,11 @@ import (
 	"github.com/ouz/goauthboilerplate/internal/domain/shared"
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
+)
+
+const (
+	userCachePrefix = "user:%s" // userID
+	userCacheTTL    = 5 * time.Minute
 )
 
 type userService struct {
@@ -31,7 +37,6 @@ func NewUserService(logger *logrus.Logger, ur user.UserRepository, rc redis.Redi
 }
 
 func (s *userService) Register(ctx context.Context, request authDto.UserRegisterRequest) error {
-
 	email, err := shared.NewEmail(request.Email)
 	if err != nil {
 		return err
@@ -44,18 +49,21 @@ func (s *userService) Register(ctx context.Context, request authDto.UserRegister
 
 	existingUser, err := s.userRepository.FindNotVerifiedUser(ctx, user.Email)
 	if err != nil {
-		return err
+		return errors.InternalError("Failed to check existing user", err)
 	}
 
 	if existingUser != nil {
-		return errors.ConflictError("user already exists", nil)
+		return errors.ConflictError("User already exists", nil)
 	}
 
-	err = s.userRepository.Create(ctx, user)
-	if err != nil {
-		return err
+	if err := s.userRepository.Create(ctx, user); err != nil {
+		return errors.InternalError("Failed to create user", err)
 	}
 
+	s.logger.WithFields(logrus.Fields{
+		"userID": user.ID,
+		"email":  user.Email,
+	}).Info("User registered successfully, verification email will be sent")
 	// TODO: Send email to user
 	return nil
 }
@@ -66,33 +74,41 @@ func (s *userService) RegisterAnonymousUser(ctx context.Context) (*user.User, er
 		return nil, err
 	}
 
-	err = s.userRepository.Create(ctx, user)
-	if err != nil {
-		return nil, err
+	if err := s.userRepository.Create(ctx, user); err != nil {
+		return nil, errors.InternalError("Failed to create anonymous user", err)
 	}
 
+	s.logger.WithField("user_id", user.ID).Info("Anonymous user registered successfully")
 	return user, nil
 }
 
 func (s *userService) FindByEmail(ctx context.Context, email string) (*user.User, error) {
-	return s.userRepository.FindByEmail(ctx, email)
+	user, err := s.userRepository.FindByEmail(ctx, email)
+	if err != nil {
+		return nil, errors.InternalError("Failed to find user by email", err)
+	}
+	return user, nil
 }
 
 func (s *userService) FindUserWithRoles(ctx context.Context, id string, fromCache bool) (*user.User, error) {
 	if fromCache {
 		var user = &user.User{}
-		if found, _ := s.redisCache.Get(ctx, "user", id, user); found {
+		cacheKey := fmt.Sprintf(userCachePrefix, id)
+		if found, err := s.redisCache.Get(ctx, cacheKey, "", user); err == nil && found {
 			return user, nil
 		}
 	}
 
 	user, err := s.userRepository.FindUserWithRoles(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, errors.InternalError("Failed to find user with roles", err)
 	}
 
-	if fromCache {
-		s.redisCache.Set(ctx, "user", id, 5*time.Minute, user)
+	if user != nil && fromCache {
+		cacheKey := fmt.Sprintf(userCachePrefix, id)
+		if err := s.redisCache.Set(ctx, cacheKey, "", userCacheTTL, user); err != nil {
+			s.logger.WithError(err).WithField("user_id", id).Error("Failed to cache user")
+		}
 	}
 
 	return user, nil
@@ -105,7 +121,11 @@ func (s *userService) ConfirmUser(ctx context.Context, confirmation string) erro
 	}
 
 	if userConfirmation == nil {
-		return errors.NotFoundError("User confirmation not found", err)
+		return errors.NotFoundError("User confirmation not found", nil)
+	}
+
+	if userConfirmation.User.ID == "" {
+		return errors.InternalError("Invalid user confirmation data", nil)
 	}
 
 	userConfirmation.User.Confirm()
@@ -118,6 +138,13 @@ func (s *userService) ConfirmUser(ctx context.Context, confirmation string) erro
 		if err := s.userRepository.Update(ctx, &userConfirmation.User); err != nil {
 			return errors.InternalError("Failed to confirm user", err)
 		}
+
+		// Invalidate user cache after confirmation
+		cacheKey := fmt.Sprintf(userCachePrefix, userConfirmation.User.ID)
+		if err := s.redisCache.Evict(ctx, cacheKey, ""); err != nil {
+			s.logger.WithError(err).WithField("userID", userConfirmation.User.ID).Error("Failed to invalidate user cache")
+		}
+
 		return nil
 	})
 
@@ -125,5 +152,6 @@ func (s *userService) ConfirmUser(ctx context.Context, confirmation string) erro
 		return errors.InternalError("Failed to confirm user", err)
 	}
 
+	s.logger.WithField("userID", userConfirmation.User.ID).Info("User confirmed successfully")
 	return nil
 }

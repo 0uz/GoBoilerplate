@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -13,6 +14,12 @@ import (
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	userAccessTokenPrefix  = "uat:%s:%s" // userID:clientType
+	userRefreshTokenPrefix = "urt:%s:%s" // userID:clientType
+	clientCachePrefix      = "client"
 )
 
 type authService struct {
@@ -81,16 +88,22 @@ func generateToken(jwtSecret, userID string, jti string, expiration time.Duratio
 }
 
 func (s *authService) saveTokenPairs(ctx context.Context, userId, accessTokenId, refreshTokenId, clientType string, conf config.JWTConfig) error {
-	err := s.redisCache.Set(ctx, "uat:"+userId+":"+clientType, accessTokenId, conf.AccessExpiration, 0)
-	if err != nil {
-		return err
+	accessTokenKey := fmt.Sprintf(userAccessTokenPrefix, userId, clientType)
+	if err := s.redisCache.Set(ctx, accessTokenKey, accessTokenId, conf.AccessExpiration, 0); err != nil {
+		return errors.InternalError("Failed to save access token", err)
 	}
-	return s.redisCache.Set(ctx, "urt:"+userId+":"+clientType, refreshTokenId, conf.RefreshExpiration, 0)
+
+	refreshTokenKey := fmt.Sprintf(userRefreshTokenPrefix, userId, clientType)
+	if err := s.redisCache.Set(ctx, refreshTokenKey, refreshTokenId, conf.RefreshExpiration, 0); err != nil {
+		return errors.InternalError("Failed to save refresh token", err)
+	}
+
+	return nil
 }
 
 func (s *authService) FindClientBySecretCached(ctx context.Context, clientSecret string) (auth.Client, error) {
 	var cachedClient auth.Client
-	if found, _ := s.redisCache.Get(ctx, "client", clientSecret, cachedClient); found {
+	if found, _ := s.redisCache.Get(ctx, clientCachePrefix, clientSecret, cachedClient); found {
 		return cachedClient, nil
 	}
 
@@ -99,7 +112,9 @@ func (s *authService) FindClientBySecretCached(ctx context.Context, clientSecret
 		return auth.Client{}, err
 	}
 
-	s.redisCache.Set(ctx, "client", clientSecret, 1*time.Hour, clientFromDB)
+	if err := s.redisCache.Set(ctx, clientCachePrefix, clientSecret, 1*time.Hour, clientFromDB); err != nil {
+		s.logger.WithError(err).Error("Failed to cache client")
+	}
 
 	return *clientFromDB, nil
 }
@@ -117,28 +132,30 @@ func createTokenEntity(id string, token string, tokenType auth.TokenType, userID
 }
 
 func (s *authService) RevokeAllTokensByClient(ctx context.Context, userID string, clientType auth.ClientType) error {
-	err := s.redisCache.EvictByPrefix(ctx, "uat:"+userID+":"+string(clientType))
-	if err != nil {
-		return err
+	accessTokenKey := fmt.Sprintf(userAccessTokenPrefix, userID, string(clientType))
+	if err := s.redisCache.EvictByPrefix(ctx, accessTokenKey); err != nil {
+		return errors.InternalError("Failed to revoke access tokens", err)
 	}
 
-	err = s.redisCache.EvictByPrefix(ctx, "urt:"+userID+":"+string(clientType))
-	if err != nil {
-		return err
+	refreshTokenKey := fmt.Sprintf(userRefreshTokenPrefix, userID, string(clientType))
+	if err := s.redisCache.EvictByPrefix(ctx, refreshTokenKey); err != nil {
+		return errors.InternalError("Failed to revoke refresh tokens", err)
 	}
+
 	return nil
 }
 
 func (s *authService) RevokeAllTokens(ctx context.Context, userID string) error {
-	err := s.redisCache.EvictByPrefix(ctx, "uat:"+userID)
-	if err != nil {
-		return err
+	accessTokenKey := fmt.Sprintf(userAccessTokenPrefix, userID, "")
+	if err := s.redisCache.EvictByPrefix(ctx, accessTokenKey); err != nil {
+		return errors.InternalError("Failed to revoke access tokens", err)
 	}
 
-	err = s.redisCache.EvictByPrefix(ctx, "urt:"+userID)
-	if err != nil {
-		return err
+	refreshTokenKey := fmt.Sprintf(userRefreshTokenPrefix, userID, "")
+	if err := s.redisCache.EvictByPrefix(ctx, refreshTokenKey); err != nil {
+		return errors.InternalError("Failed to revoke refresh tokens", err)
 	}
+
 	return nil
 }
 
@@ -274,18 +291,20 @@ func (s *authService) ValidateTokenAndGetUser(ctx context.Context, token string)
 
 	u, err := s.userService.FindUserWithRoles(ctx, claims.UserId, true)
 	if err != nil {
-		return user.User{}, errors.NotFoundError("User not found", err)
+		return user.User{}, errors.UnauthorizedError("Invalid user", err)
 	}
 
 	return *u, nil
 }
 
 func (s *authService) IsAccessTokenRevoked(ctx context.Context, tokenID, userID, clientType string) (bool, error) {
-	exists, err := s.redisCache.Exists(ctx, "uat:"+userID+":"+clientType, tokenID)
+	key := fmt.Sprintf(userAccessTokenPrefix, userID, clientType)
+	exists, err := s.redisCache.Exists(ctx, key, tokenID)
 	return !exists, err
 }
 
 func (s *authService) IsRefreshTokenRevoked(ctx context.Context, tokenID, userID, clientType string) (bool, error) {
-	exists, err := s.redisCache.Exists(ctx, "urt:"+userID+":"+clientType, tokenID)
+	key := fmt.Sprintf(userRefreshTokenPrefix, userID, clientType)
+	exists, err := s.redisCache.Exists(ctx, key, tokenID)
 	return !exists, err
 }
