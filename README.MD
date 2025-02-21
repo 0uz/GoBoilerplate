@@ -1,6 +1,6 @@
 # Go Boilerplate
 
-A robust boilerplate with authentication built with Go, featuring JWT authentication, PostgreSQL integration, Redis caching, and RESTful API endpoints. This project follows clean architecture principles with a well-organized project structure.
+A robust boilerplate with authentication built with Go, featuring JWT authentication, PostgreSQL integration, Valkey caching, and RESTful API endpoints. This project follows clean architecture principles with a well-organized project structure.
 
 ## Features
 

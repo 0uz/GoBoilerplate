@@ -103,9 +103,9 @@ func run() error {
 }
 
 func addV1Prefix(r *http.ServeMux, logger *logrus.Logger) *http.ServeMux {
-	tokenBucket := middleware.NewTokenBucket(1, 3)
+	// tokenBucket := middleware.NewTokenBucket(1, 3) // Reverse proxy rate limiter preferred
 	chain := middleware.Chain(
-		middleware.RateLimitMiddleware(tokenBucket),
+		// middleware.RateLimitMiddleware(tokenBucket),
 		middleware.Logging(logger),
 		middleware.Recovery(logger),
 	)

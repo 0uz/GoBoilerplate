@@ -2,8 +2,10 @@ package util
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
+	"github.com/ouz/goauthboilerplate/internal/adapters/api/validator"
 	"github.com/ouz/goauthboilerplate/internal/domain/auth"
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
@@ -25,7 +27,6 @@ func GetClient(ctx context.Context) (auth.Client, error) {
 	return client, nil
 }
 
-
 func ExtractClientSecret(r *http.Request) string {
 	return r.Header.Get(ClientHeader)
 }
@@ -40,4 +41,16 @@ func GetAuthenticatedUser(r *http.Request) (user.User, error) {
 		return user.User{}, errors.InternalError("Failed to convert user", nil)
 	}
 	return u, nil
+}
+
+func DecodeAndValidate(r *http.Request, request interface{}) error {
+	if err := json.NewDecoder(r.Body).Decode(request); err != nil {
+		return errors.BadRequestError("Invalid request body")
+	}
+
+	if err := validator.Validator.Struct(request); err != nil {
+		return errors.BadRequestError(err.Error())
+	}
+
+	return nil
 }
