@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -8,37 +9,50 @@ import (
 type ErrorCode int
 
 const (
-	// Genel hata kodları
-	ErrCodeUnknown    ErrorCode = 1000
-	ErrCodeInternal   ErrorCode = 1001
-	ErrCodeBadRequest ErrorCode = 1002
+	// General errors
+	ErrCodeUnknown ErrorCode = iota + 1000
+	ErrCodeInternal
+	ErrCodeBadRequest
 
-	// Doğrulama hata kodları
-	ErrCodeValidation   ErrorCode = 2000
-	ErrCodeInvalidInput ErrorCode = 2001
-	ErrCodeMissingField ErrorCode = 2002
+	// Validation errors
+	ErrCodeValidation ErrorCode = iota + 2000
+	ErrCodeInvalidInput
+	ErrCodeMissingField
 
-	// Yetkilendirme hata kodları
-	ErrCodeUnauthorized ErrorCode = 3000
-	ErrCodeForbidden    ErrorCode = 3001
-	ErrCodeInvalidToken ErrorCode = 3002
-	ErrCodeAuth         ErrorCode = 3003
+	// Authentication errors
+	ErrCodeUnauthorized ErrorCode = iota + 3000
+	ErrCodeForbidden
+	ErrCodeInvalidToken
+	ErrCodeAuth
 
-	// Kaynak hata kodları
-	ErrCodeNotFound      ErrorCode = 4000
-	ErrCodeAlreadyExists ErrorCode = 4001
-	ErrCodeConflict      ErrorCode = 4002
+	// Resource errors
+	ErrCodeNotFound ErrorCode = iota + 4000
+	ErrCodeAlreadyExists
+	ErrCodeConflict
 
-	// Veritabanı hata kodları
-	ErrCodeDatabase       ErrorCode = 5000
-	ErrCodeDuplicateEntry ErrorCode = 5001
+	// Database errors
+	ErrCodeDatabase ErrorCode = iota + 5000
+	ErrCodeDuplicateEntry
 
-	// Dış servis hata kodları
-	ErrCodeExternalService        ErrorCode = 6000
-	ErrCodeExternalServiceTimeout ErrorCode = 6001
+	// External service errors
+	ErrCodeExternalService ErrorCode = iota + 6000
+	ErrCodeExternalServiceTimeout
 
-	// İş mantığı hata kodları
-	ErrCodeBusinessLogic ErrorCode = 7000
+	// Business logic errors
+	ErrCodeBusinessLogic ErrorCode = iota + 7000
+)
+
+// Error types
+const (
+	TypeUnknown      = "UNKNOWN_ERROR"
+	TypeValidation   = "VALIDATION_ERROR"
+	TypeNotFound     = "NOT_FOUND"
+	TypeInternal     = "INTERNAL_ERROR"
+	TypeUnauthorized = "UNAUTHORIZED"
+	TypeAuth         = "AUTH_ERROR"
+	TypeForbidden    = "FORBIDDEN"
+	TypeConflict     = "CONFLICT"
+	TypeBadRequest   = "BAD_REQUEST"
 )
 
 type AppError struct {
@@ -49,12 +63,23 @@ type AppError struct {
 	Status  int       `json:"-"`
 }
 
-func (e AppError) Error() string {
+func (e *AppError) Error() string {
+	if e.Err != nil {
+		return fmt.Sprintf("Error %d: %s - %s: %v", e.Code, e.Type, e.Message, e.Err)
+	}
 	return fmt.Sprintf("Error %d: %s - %s", e.Code, e.Type, e.Message)
 }
 
-func (e AppError) Unwrap() error {
+func (e *AppError) Unwrap() error {
 	return e.Err
+}
+
+func (e *AppError) Is(target error) bool {
+	t, ok := target.(*AppError)
+	if !ok {
+		return false
+	}
+	return e.Code == t.Code
 }
 
 func NewAppError(code ErrorCode, errType string, message string, err error, status int) *AppError {
@@ -67,45 +92,72 @@ func NewAppError(code ErrorCode, errType string, message string, err error, stat
 	}
 }
 
-func GenericError(message string, err error) *AppError {
-	return NewAppError(ErrCodeUnknown, "UNKNOWN_ERROR", message, err, http.StatusInternalServerError)
-}
-
-func ValidationError(message string, err error) *AppError {
-	return NewAppError(ErrCodeValidation, "VALIDATION_ERROR", message, err, http.StatusBadRequest)
-}
-
-func NotFoundError(message string, err error) *AppError {
-	return NewAppError(ErrCodeNotFound, "NOT_FOUND", message, err, http.StatusNotFound)
-}
-
-func IsNotFoundError(err error) bool {
-	if appErr, ok := err.(*AppError); ok {
-		return appErr.Code == ErrCodeNotFound
+func IsErrorCode(err error, code ErrorCode) bool {
+	var appErr *AppError
+	if errors.As(err, &appErr) {
+		return appErr.Code == code
 	}
 	return false
 }
 
+func IsErrorType(err error, errType string) bool {
+	var appErr *AppError
+	if errors.As(err, &appErr) {
+		return appErr.Type == errType
+	}
+	return false
+}
+
+func GenericError(message string, err error) *AppError {
+	return NewAppError(ErrCodeUnknown, TypeUnknown, message, err, http.StatusInternalServerError)
+}
+
+func ValidationError(message string, err error) *AppError {
+	return NewAppError(ErrCodeValidation, TypeValidation, message, err, http.StatusBadRequest)
+}
+
+func NotFoundError(message string, err error) *AppError {
+	return NewAppError(ErrCodeNotFound, TypeNotFound, message, err, http.StatusNotFound)
+}
+
+func IsNotFoundError(err error) bool {
+	return IsErrorCode(err, ErrCodeNotFound)
+}
+
 func InternalError(message string, err error) *AppError {
-	return NewAppError(ErrCodeInternal, "INTERNAL_ERROR", message, err, http.StatusInternalServerError)
+	return NewAppError(ErrCodeInternal, TypeInternal, message, err, http.StatusInternalServerError)
 }
 
 func UnauthorizedError(message string, err error) *AppError {
-	return NewAppError(ErrCodeUnauthorized, "UNAUTHORIZED", message, err, http.StatusUnauthorized)
+	return NewAppError(ErrCodeUnauthorized, TypeUnauthorized, message, err, http.StatusUnauthorized)
 }
 
 func AuthError(message string, err error) *AppError {
-	return NewAppError(ErrCodeAuth, "AUTH_ERROR", message, err, http.StatusUnauthorized)
+	return NewAppError(ErrCodeAuth, TypeAuth, message, err, http.StatusUnauthorized)
 }
 
 func ForbiddenError(message string, err error) *AppError {
-	return NewAppError(ErrCodeForbidden, "FORBIDDEN", message, err, http.StatusForbidden)
+	return NewAppError(ErrCodeForbidden, TypeForbidden, message, err, http.StatusForbidden)
 }
 
 func ConflictError(message string, err error) *AppError {
-	return NewAppError(ErrCodeConflict, "CONFLICT", message, err, http.StatusConflict)
+	return NewAppError(ErrCodeConflict, TypeConflict, message, err, http.StatusConflict)
 }
 
 func BadRequestError(message string) *AppError {
-	return NewAppError(ErrCodeBadRequest, "BAD_REQUEST", message, nil, http.StatusBadRequest)
+	return NewAppError(ErrCodeBadRequest, TypeBadRequest, message, nil, http.StatusBadRequest)
+}
+
+func (e *AppError) WithMessage(message string) *AppError {
+	e.Message = message
+	return e
+}
+
+func (e *AppError) WithError(err error) *AppError {
+	e.Err = err
+	return e
+}
+
+func (e *AppError) GetStatus() int {
+	return e.Status
 }

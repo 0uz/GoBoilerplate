@@ -29,34 +29,56 @@ func NewUser(username, password string, email vo.Email) (*User, error) {
 		return nil, errors.ValidationError("Username is empty", nil)
 	}
 
-	credential, err := NewCredential(CredentialTypePassword, password)
-	if err != nil {
+	user := &User{
+		ID:        uuid.New().String(),
+		Username:  username,
+		Email:     email.Address,
+		Roles:     []UserRole{{Name: UserRoleUser}},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	if err := user.AddCredential(password); err != nil {
 		return nil, err
 	}
 
-	return &User{
-		ID:       uuid.New().String(),
-		Username: username,
-		Email:    email.Address,
-		Credentials: []Credential{
-			*credential,
-		},
-		Roles:         []UserRole{{Name: UserRoleUser}},
-		Confirmations: []UserConfirmation{{}},
-		CreatedAt:     time.Now(),
-		UpdatedAt:     time.Now(),
-	}, nil
+	if err := user.AddConfirmation(); err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
 func NewAnonymousUser() (*User, error) {
 	return &User{
+		ID:        uuid.New().String(),
 		Username:  uuid.New().String(),
 		Email:     uuid.New().String(),
 		Roles:     []UserRole{{Name: UserRoleAnonymous}},
 		Enabled:   true,
 		Verified:  true,
 		Anonymous: true,
+		CreatedAt: time.Now(),
 	}, nil
+}
+
+func (u *User) AddCredential(password string) error {
+	credential, err := NewCredential(CredentialTypePassword, password)
+	if err != nil {
+		return err
+	}
+	u.Credentials = append(u.Credentials, *credential)
+	return nil
+}
+
+func (u *User) AddConfirmation() error {
+	confirmation := UserConfirmation{
+		ID:        uuid.New().String(),
+		UserID:    u.ID,
+		CreatedAt: time.Now(),
+	}
+	u.Confirmations = append(u.Confirmations, confirmation)
+	return nil
 }
 
 func (u *User) IsPasswordValid(password string) bool {
@@ -80,4 +102,5 @@ func (u *User) HasRole(role UserRoleName) bool {
 func (u *User) Confirm() {
 	u.Verified = true
 	u.Enabled = true
+	u.UpdatedAt = time.Now()
 }

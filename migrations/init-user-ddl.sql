@@ -62,7 +62,9 @@ CREATE TABLE IF NOT EXISTS public.user_confirmations (
 CREATE INDEX IF NOT EXISTS idx_user_confirmations_deleted_at ON public.user_confirmations USING btree (deleted_at);
 CREATE INDEX IF NOT EXISTS idx_user_confirmations_user_id ON public.user_confirmations USING btree (user_id);
 
-
-INSERT INTO public.clients (client_type,client_secret,created_at) VALUES ('WEB',gen_random_uuid(),'now');
-INSERT INTO public.clients (client_type,client_secret,created_at) VALUES ('ANDROID',gen_random_uuid(),'now');
-INSERT INTO public.clients (client_type,client_secret,created_at) VALUES ('IOS',gen_random_uuid(),'now');
+-- Insert default clients with consistent client types
+INSERT INTO public.clients (client_type, client_secret, created_at) 
+VALUES 
+    ('web', gen_random_uuid()::text, CURRENT_TIMESTAMP),
+    ('android', gen_random_uuid()::text, CURRENT_TIMESTAMP),
+    ('ios', gen_random_uuid()::text, CURRENT_TIMESTAMP);
