@@ -5,20 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
 	"github.com/ouz/goauthboilerplate/internal/adapters/repo/cache/redis"
 	"github.com/ouz/goauthboilerplate/internal/config"
 	"github.com/ouz/goauthboilerplate/internal/domain/auth"
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
-)
-
-const (
-	userAccessTokenPrefix  = "uat:%s:%s" // userID:clientType
-	userRefreshTokenPrefix = "urt:%s:%s" // userID:clientType
-	clientCachePrefix      = "client"
 )
 
 type authService struct {
@@ -38,20 +30,6 @@ func NewAuthService(logger *config.Logger, ar auth.AuthRepository, us user.UserS
 }
 
 func (s *authService) GenerateToken(ctx context.Context, userId string) ([]auth.Token, error) {
-	now := time.Now()
-
-	accessTokenId := uuid.New().String()
-	conf := config.Get().JWT
-	accessToken, err := generateToken(conf.Secret, userId, accessTokenId, conf.AccessExpiration)
-	if err != nil {
-		return nil, errors.AuthError("Failed to generate access token", err)
-	}
-	refreshTokenId := uuid.New().String()
-	refreshToken, err := generateToken(conf.Secret, userId, refreshTokenId, conf.RefreshExpiration)
-	if err != nil {
-		return nil, errors.InternalError("Failed to generate refresh token", err)
-	}
-
 	client, err := util.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -61,39 +39,24 @@ func (s *authService) GenerateToken(ctx context.Context, userId string) ([]auth.
 		return nil, errors.InternalError("Failed to revoke old tokens", err)
 	}
 
-	clientType := string(client.ClientType)
-
-	tokens := []auth.Token{
-		createTokenEntity(accessTokenId, accessToken, auth.ACCESS_TOKEN, userId, clientType, now.Add(conf.AccessExpiration)),
-		createTokenEntity(refreshTokenId, refreshToken, auth.REFRESH_TOKEN, userId, clientType, now.Add(conf.RefreshExpiration)),
+	tokenPair, err := auth.NewTokenPair(userId, string(client.ClientType), config.Get().JWT)
+	if err != nil {
+		return nil, err
 	}
 
-	if err := s.saveTokenPairs(ctx, userId, accessTokenId, refreshTokenId, clientType, conf); err != nil {
-		return nil, errors.InternalError("Failed to save token pairs", err)
+	if err := s.saveTokenPair(ctx, tokenPair); err != nil {
+		return nil, errors.InternalError("Failed to save token pair", err)
 	}
-	return tokens, nil
+
+	return tokenPair.ToTokenSlice(), nil
 }
 
-func generateToken(jwtSecret, userID string, jti string, expiration time.Duration) (string, error) {
-	claims := auth.TokenClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiration)),
-			ID:        jti,
-		},
-		UserId: userID,
-	}
-
-	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(jwtSecret))
-}
-
-func (s *authService) saveTokenPairs(ctx context.Context, userId, accessTokenId, refreshTokenId, clientType string, conf config.JWTConfig) error {
-	accessTokenKey := fmt.Sprintf(userAccessTokenPrefix, userId, clientType)
-	if err := s.redisCache.Set(ctx, accessTokenKey, accessTokenId, conf.AccessExpiration, 0); err != nil {
+func (s *authService) saveTokenPair(ctx context.Context, tokenPair *auth.TokenPair) error {
+	if err := s.redisCache.Set(ctx, tokenPair.AccessToken.GetCacheKey(), tokenPair.AccessToken.ID, config.Get().JWT.AccessExpiration, 0); err != nil {
 		return errors.InternalError("Failed to save access token", err)
 	}
 
-	refreshTokenKey := fmt.Sprintf(userRefreshTokenPrefix, userId, clientType)
-	if err := s.redisCache.Set(ctx, refreshTokenKey, refreshTokenId, conf.RefreshExpiration, 0); err != nil {
+	if err := s.redisCache.Set(ctx, tokenPair.RefreshToken.GetCacheKey(), tokenPair.RefreshToken.ID, config.Get().JWT.RefreshExpiration, 0); err != nil {
 		return errors.InternalError("Failed to save refresh token", err)
 	}
 
@@ -102,7 +65,9 @@ func (s *authService) saveTokenPairs(ctx context.Context, userId, accessTokenId,
 
 func (s *authService) FindClientBySecretCached(ctx context.Context, clientSecret string) (auth.Client, error) {
 	var cachedClient auth.Client
-	if found, _ := s.redisCache.Get(ctx, clientCachePrefix, clientSecret, cachedClient); found {
+	cacheKey := fmt.Sprintf("client:%s", clientSecret)
+
+	if found, _ := s.redisCache.Get(ctx, cacheKey, clientSecret, &cachedClient); found {
 		return cachedClient, nil
 	}
 
@@ -111,32 +76,20 @@ func (s *authService) FindClientBySecretCached(ctx context.Context, clientSecret
 		return auth.Client{}, err
 	}
 
-	if err := s.redisCache.Set(ctx, clientCachePrefix, clientSecret, 1*time.Hour, clientFromDB); err != nil {
+	if err := s.redisCache.Set(ctx, cacheKey, clientSecret, 1*time.Hour, clientFromDB); err != nil {
 		s.logger.WithError(err).Error("Failed to cache client")
 	}
 
 	return *clientFromDB, nil
 }
 
-func createTokenEntity(id string, token string, tokenType auth.TokenType, userID, clientType string, expiresAt time.Time) auth.Token {
-	return auth.Token{
-		ID:         id,
-		Token:      token,
-		TokenType:  tokenType,
-		Revoked:    false,
-		ClientType: clientType,
-		UserID:     userID,
-		ExpiresAt:  expiresAt,
-	}
-}
-
 func (s *authService) RevokeAllTokensByClient(ctx context.Context, userID string, clientType auth.ClientType) error {
-	accessTokenKey := fmt.Sprintf(userAccessTokenPrefix, userID, string(clientType))
+	accessTokenKey := fmt.Sprintf("uat:%s:%s", userID, string(clientType))
 	if err := s.redisCache.EvictByPrefix(ctx, accessTokenKey); err != nil {
 		return errors.InternalError("Failed to revoke access tokens", err)
 	}
 
-	refreshTokenKey := fmt.Sprintf(userRefreshTokenPrefix, userID, string(clientType))
+	refreshTokenKey := fmt.Sprintf("urt:%s:%s", userID, string(clientType))
 	if err := s.redisCache.EvictByPrefix(ctx, refreshTokenKey); err != nil {
 		return errors.InternalError("Failed to revoke refresh tokens", err)
 	}
@@ -145,12 +98,12 @@ func (s *authService) RevokeAllTokensByClient(ctx context.Context, userID string
 }
 
 func (s *authService) RevokeAllTokens(ctx context.Context, userID string) error {
-	accessTokenKey := fmt.Sprintf(userAccessTokenPrefix, userID, "")
+	accessTokenKey := fmt.Sprintf("uat:%s:", userID)
 	if err := s.redisCache.EvictByPrefix(ctx, accessTokenKey); err != nil {
 		return errors.InternalError("Failed to revoke access tokens", err)
 	}
 
-	refreshTokenKey := fmt.Sprintf(userRefreshTokenPrefix, userID, "")
+	refreshTokenKey := fmt.Sprintf("urt:%s:", userID)
 	if err := s.redisCache.EvictByPrefix(ctx, refreshTokenKey); err != nil {
 		return errors.InternalError("Failed to revoke refresh tokens", err)
 	}
@@ -159,12 +112,13 @@ func (s *authService) RevokeAllTokens(ctx context.Context, userID string) error 
 }
 
 func (s *authService) RefreshAccessToken(ctx context.Context, refreshToken string) ([]auth.Token, error) {
-	claims, err := s.ValidateToken(ctx, refreshToken)
+	client, err := util.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	client, err := util.GetClient(ctx)
+	token := &auth.Token{Token: refreshToken}
+	claims, err := token.Validate(config.Get().JWT.Secret)
 	if err != nil {
 		return nil, err
 	}
@@ -183,33 +137,12 @@ func (s *authService) RefreshAccessToken(ctx context.Context, refreshToken strin
 		return nil, errors.NotFoundError("User not found", err)
 	}
 
-	tokens, err := s.GenerateToken(ctx, user.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return tokens, nil
+	return s.GenerateToken(ctx, user.ID)
 }
 
-func (s *authService) ValidateToken(ctx context.Context, token string) (*auth.TokenClaims, error) {
-	t, err := jwt.ParseWithClaims(token, &auth.TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.UnauthorizedError("Invalid token signing method", nil)
-		}
-		config := config.Get().JWT
-		return []byte(config.Secret), nil
-	})
-
-	if err != nil {
-		return nil, errors.UnauthorizedError("Invalid token", err)
-	}
-
-	claims, ok := t.Claims.(*auth.TokenClaims)
-	if !ok {
-		return nil, errors.UnauthorizedError("Invalid token claims", nil)
-	}
-
-	return claims, nil
+func (s *authService) ValidateToken(ctx context.Context, tokenStr string) (*auth.TokenClaims, error) {
+	token := &auth.Token{Token: tokenStr}
+	return token.Validate(config.Get().JWT.Secret)
 }
 
 func (s *authService) Login(ctx context.Context, email, password string) ([]auth.Token, error) {
@@ -225,12 +158,7 @@ func (s *authService) Login(ctx context.Context, email, password string) ([]auth
 		return nil, errors.UnauthorizedError("Invalid credentials", nil)
 	}
 
-	tokens, err := s.GenerateToken(ctx, user.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return tokens, nil
+	return s.GenerateToken(ctx, user.ID)
 }
 
 func (s *authService) LoginAnonymous(ctx context.Context, email string) ([]auth.Token, error) {
@@ -242,12 +170,7 @@ func (s *authService) LoginAnonymous(ctx context.Context, email string) ([]auth.
 		return nil, errors.NotFoundError("User not found", nil)
 	}
 
-	tokens, err := s.GenerateToken(ctx, user.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return tokens, nil
+	return s.GenerateToken(ctx, user.ID)
 }
 
 func (s *authService) Logout(ctx context.Context, userID string) error {
@@ -297,13 +220,17 @@ func (s *authService) ValidateTokenAndGetUser(ctx context.Context, token string)
 }
 
 func (s *authService) IsAccessTokenRevoked(ctx context.Context, tokenID, userID, clientType string) (bool, error) {
-	key := fmt.Sprintf(userAccessTokenPrefix, userID, clientType)
+	key := fmt.Sprintf("uat:%s:%s", userID, clientType)
 	exists, err := s.redisCache.Exists(ctx, key, tokenID)
 	return !exists, err
 }
 
-func (s *authService) IsRefreshTokenRevoked(ctx context.Context, tokenID, userID, clientType string) (bool, error) {
-	key := fmt.Sprintf(userRefreshTokenPrefix, userID, clientType)
-	exists, err := s.redisCache.Exists(ctx, key, tokenID)
-	return !exists, err
+func (s *authService) IsRefreshTokenRevoked(ctx context.Context, tokenID string, userID string, clientType string) (bool, error) {
+	var storedTokenID string
+	key := fmt.Sprintf("urt:%s:%s", userID, clientType)
+	found, err := s.redisCache.Get(ctx, key, tokenID, &storedTokenID)
+	if err != nil {
+		return false, err
+	}
+	return !found || storedTokenID != tokenID, nil
 }
