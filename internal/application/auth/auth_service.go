@@ -123,7 +123,7 @@ func (s *authService) RefreshAccessToken(ctx context.Context, refreshToken strin
 	}
 
 	claims.SetClient(client)
-
+	claims.SetTokenType(auth.ACCESS_TOKEN)
 	revoked, err := s.IsTokenRevoked(ctx, claims)
 	if err != nil {
 		return auth.TokenPair{}, errors.InternalError("Failed to check if token is revoked", err)
@@ -203,7 +203,8 @@ func (s *authService) ValidateTokenAndGetUser(ctx context.Context, token string)
 	}
 
 	claims.SetClient(client)
-
+	claims.SetTokenType(auth.ACCESS_TOKEN)
+	
 	revoked, err := s.IsTokenRevoked(ctx, claims)
 	if err != nil {
 		return user.User{}, errors.InternalError("Failed to check if token is revoked", err)

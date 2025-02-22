@@ -113,13 +113,17 @@ func (t *Token) GetPrefix() string {
 		return fmt.Sprintf("uat:%s:%s", t.UserId, string(t.ClientType))
 	}
 
-	return fmt.Sprintf("urt:%s:%s", t.UserId, string(t.ClientType))
+	if t.TokenType == REFRESH_TOKEN {
+		return fmt.Sprintf("urt:%s:%s", t.UserId, string(t.ClientType))
+	}
+
+	return ""
 }
 
 func GeneratePrefix(tokenType TokenType, userID string, clientType ClientType) string {
-	prefix := "urt"
-	if tokenType == ACCESS_TOKEN {
-		prefix = "uat"
+	prefix := "uat"
+	if tokenType == REFRESH_TOKEN {
+		prefix = "urt"
 	}
 
 	if clientType == "" {
@@ -131,4 +135,8 @@ func GeneratePrefix(tokenType TokenType, userID string, clientType ClientType) s
 
 func (t *Token) SetClient(client Client) {
 	t.ClientType = client.ClientType
+}
+
+func (t *Token) SetTokenType(tokenType TokenType) {
+	t.TokenType = tokenType
 }
