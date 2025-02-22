@@ -29,34 +29,34 @@ func NewAuthService(logger *config.Logger, ar auth.AuthRepository, us user.UserS
 	}
 }
 
-func (s *authService) GenerateToken(ctx context.Context, userId string) ([]auth.Token, error) {
+func (s *authService) GenerateToken(ctx context.Context, userId string) (auth.TokenPair, error) {
 	client, err := util.GetClient(ctx)
 	if err != nil {
-		return nil, err
+		return auth.TokenPair{}, err
 	}
 
 	if err := s.RevokeAllTokensByClient(ctx, userId, client.ClientType); err != nil {
-		return nil, errors.InternalError("Failed to revoke old tokens", err)
+		return auth.TokenPair{}, errors.InternalError("Failed to revoke old tokens", err)
 	}
 
-	tokenPair, err := auth.NewTokenPair(userId, string(client.ClientType), config.Get().JWT)
+	tokenPair, err := auth.NewTokenPair(userId, client.ClientType, config.Get().JWT)
 	if err != nil {
-		return nil, err
+		return auth.TokenPair{}, err
 	}
 
 	if err := s.saveTokenPair(ctx, tokenPair); err != nil {
-		return nil, errors.InternalError("Failed to save token pair", err)
+		return auth.TokenPair{}, errors.InternalError("Failed to save token pair", err)
 	}
 
-	return tokenPair.ToTokenSlice(), nil
+	return tokenPair, nil
 }
 
-func (s *authService) saveTokenPair(ctx context.Context, tokenPair *auth.TokenPair) error {
-	if err := s.redisCache.Set(ctx, tokenPair.AccessToken.GetCacheKey(), tokenPair.AccessToken.ID, config.Get().JWT.AccessExpiration, 0); err != nil {
+func (s *authService) saveTokenPair(ctx context.Context, tokenPair auth.TokenPair) error {
+	if err := s.redisCache.Set(ctx, tokenPair.AccessToken.GetPrefix(), tokenPair.AccessToken.ID, config.Get().JWT.AccessExpiration, 0); err != nil {
 		return errors.InternalError("Failed to save access token", err)
 	}
 
-	if err := s.redisCache.Set(ctx, tokenPair.RefreshToken.GetCacheKey(), tokenPair.RefreshToken.ID, config.Get().JWT.RefreshExpiration, 0); err != nil {
+	if err := s.redisCache.Set(ctx, tokenPair.RefreshToken.GetPrefix(), tokenPair.RefreshToken.ID, config.Get().JWT.RefreshExpiration, 0); err != nil {
 		return errors.InternalError("Failed to save refresh token", err)
 	}
 
@@ -84,12 +84,12 @@ func (s *authService) FindClientBySecretCached(ctx context.Context, clientSecret
 }
 
 func (s *authService) RevokeAllTokensByClient(ctx context.Context, userID string, clientType auth.ClientType) error {
-	accessTokenKey := fmt.Sprintf("uat:%s:%s", userID, string(clientType))
+	accessTokenKey := auth.GeneratePrefix(auth.ACCESS_TOKEN, userID, clientType)
 	if err := s.redisCache.EvictByPrefix(ctx, accessTokenKey); err != nil {
 		return errors.InternalError("Failed to revoke access tokens", err)
 	}
 
-	refreshTokenKey := fmt.Sprintf("urt:%s:%s", userID, string(clientType))
+	refreshTokenKey := auth.GeneratePrefix(auth.REFRESH_TOKEN, userID, clientType)
 	if err := s.redisCache.EvictByPrefix(ctx, refreshTokenKey); err != nil {
 		return errors.InternalError("Failed to revoke refresh tokens", err)
 	}
@@ -98,12 +98,12 @@ func (s *authService) RevokeAllTokensByClient(ctx context.Context, userID string
 }
 
 func (s *authService) RevokeAllTokens(ctx context.Context, userID string) error {
-	accessTokenKey := fmt.Sprintf("uat:%s:", userID)
+	accessTokenKey := auth.GeneratePrefix(auth.ACCESS_TOKEN, userID, "")
 	if err := s.redisCache.EvictByPrefix(ctx, accessTokenKey); err != nil {
 		return errors.InternalError("Failed to revoke access tokens", err)
 	}
 
-	refreshTokenKey := fmt.Sprintf("urt:%s:", userID)
+	refreshTokenKey := auth.GeneratePrefix(auth.REFRESH_TOKEN, userID, "")
 	if err := s.redisCache.EvictByPrefix(ctx, refreshTokenKey); err != nil {
 		return errors.InternalError("Failed to revoke refresh tokens", err)
 	}
@@ -111,63 +111,63 @@ func (s *authService) RevokeAllTokens(ctx context.Context, userID string) error 
 	return nil
 }
 
-func (s *authService) RefreshAccessToken(ctx context.Context, refreshToken string) ([]auth.Token, error) {
+func (s *authService) RefreshAccessToken(ctx context.Context, refreshToken string) (auth.TokenPair, error) {
 	client, err := util.GetClient(ctx)
 	if err != nil {
-		return nil, err
+		return auth.TokenPair{}, err
 	}
 
-	token := &auth.Token{Token: refreshToken}
-	claims, err := token.Validate(config.Get().JWT.Secret)
+	claims, err := auth.ValidateToken(refreshToken, config.Get().JWT.Secret)
 	if err != nil {
-		return nil, err
+		return auth.TokenPair{}, err
 	}
 
-	revoked, err := s.IsRefreshTokenRevoked(ctx, claims.ID, claims.UserId, string(client.ClientType))
+	claims.SetClient(client)
+
+	revoked, err := s.IsTokenRevoked(ctx, claims)
 	if err != nil {
-		return nil, errors.InternalError("Failed to check if token is revoked", err)
+		return auth.TokenPair{}, errors.InternalError("Failed to check if token is revoked", err)
 	}
 
 	if revoked {
-		return nil, errors.UnauthorizedError("Token is revoked", nil)
+		return auth.TokenPair{}, errors.UnauthorizedError("Token is revoked", nil)
 	}
 
 	user, err := s.userService.FindUserWithRoles(ctx, claims.UserId, true)
 	if err != nil {
-		return nil, errors.NotFoundError("User not found", err)
+		return auth.TokenPair{}, errors.NotFoundError("User not found", err)
 	}
 
 	return s.GenerateToken(ctx, user.ID)
 }
 
-func (s *authService) ValidateToken(ctx context.Context, tokenStr string) (*auth.TokenClaims, error) {
-	token := &auth.Token{Token: tokenStr}
-	return token.Validate(config.Get().JWT.Secret)
+func (s *authService) ValidateToken(ctx context.Context, tokenStr string) (*auth.Token, error) {
+	return auth.ValidateToken(tokenStr, config.Get().JWT.Secret)
 }
 
-func (s *authService) Login(ctx context.Context, email, password string) ([]auth.Token, error) {
+func (s *authService) Login(ctx context.Context, email, password string) (auth.TokenPair, error) {
 	user, err := s.userService.FindByEmail(ctx, email)
 	if err != nil {
-		return nil, errors.InternalError("Failed to find user", err)
+		return auth.TokenPair{}, errors.InternalError("Failed to find user", err)
 	}
 	if user == nil {
-		return nil, errors.NotFoundError("User not found", nil)
+		return auth.TokenPair{}, errors.NotFoundError("User not found", nil)
 	}
 
 	if !user.IsPasswordValid(password) {
-		return nil, errors.UnauthorizedError("Invalid credentials", nil)
+		return auth.TokenPair{}, errors.UnauthorizedError("Invalid credentials", nil)
 	}
 
 	return s.GenerateToken(ctx, user.ID)
 }
 
-func (s *authService) LoginAnonymous(ctx context.Context, email string) ([]auth.Token, error) {
+func (s *authService) LoginAnonymous(ctx context.Context, email string) (auth.TokenPair, error) {
 	user, err := s.userService.FindByEmail(ctx, email)
 	if err != nil {
-		return nil, errors.InternalError("Failed to find user", err)
+		return auth.TokenPair{}, errors.InternalError("Failed to find user", err)
 	}
 	if user == nil {
-		return nil, errors.NotFoundError("User not found", nil)
+		return auth.TokenPair{}, errors.NotFoundError("User not found", nil)
 	}
 
 	return s.GenerateToken(ctx, user.ID)
@@ -202,7 +202,9 @@ func (s *authService) ValidateTokenAndGetUser(ctx context.Context, token string)
 		return user.User{}, err
 	}
 
-	revoked, err := s.IsAccessTokenRevoked(ctx, claims.ID, claims.UserId, string(client.ClientType))
+	claims.SetClient(client)
+
+	revoked, err := s.IsTokenRevoked(ctx, claims)
 	if err != nil {
 		return user.User{}, errors.InternalError("Failed to check if token is revoked", err)
 	}
@@ -219,18 +221,8 @@ func (s *authService) ValidateTokenAndGetUser(ctx context.Context, token string)
 	return *u, nil
 }
 
-func (s *authService) IsAccessTokenRevoked(ctx context.Context, tokenID, userID, clientType string) (bool, error) {
-	key := fmt.Sprintf("uat:%s:%s", userID, clientType)
-	exists, err := s.redisCache.Exists(ctx, key, tokenID)
-	return !exists, err
-}
-
-func (s *authService) IsRefreshTokenRevoked(ctx context.Context, tokenID string, userID string, clientType string) (bool, error) {
-	var storedTokenID string
-	key := fmt.Sprintf("urt:%s:%s", userID, clientType)
-	found, err := s.redisCache.Get(ctx, key, tokenID, &storedTokenID)
-	if err != nil {
-		return false, err
-	}
-	return !found || storedTokenID != tokenID, nil
+func (s *authService) IsTokenRevoked(ctx context.Context, token *auth.Token) (bool, error) {
+	key := token.GetPrefix()
+	found, err := s.redisCache.Exists(ctx, key, token.ID)
+	return !found, err
 }

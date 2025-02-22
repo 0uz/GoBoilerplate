@@ -78,9 +78,9 @@ func (r *redisCache) Set(ctx context.Context, prefix, key string, ttl time.Durat
 	return nil
 }
 
-func (r *redisCache) Get(ctx context.Context, prefix, key string, result interface{}) (bool, error) {
+func (r *redisCache) Get(ctx context.Context, prefix, key string, result any) (bool, error) {
 	fullKey := buildRedisFullKey(prefix, key)
-
+	
 	cachedData, err := r.client.Get(ctx, fullKey).Bytes()
 	if err == redis.Nil {
 		return false, nil

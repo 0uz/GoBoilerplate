@@ -12,24 +12,19 @@ type TokenPair struct {
 }
 
 // NewTokenPair creates a new token pair for a user
-func NewTokenPair(userID string, clientType string, jwtConfig config.JWTConfig) (*TokenPair, error) {
-	accessToken, err := NewToken(userID, ACCESS_TOKEN, clientType, jwtConfig.Secret, jwtConfig.AccessExpiration)
+func NewTokenPair(userID string, clientType ClientType, jwtConfig config.JWTConfig) (TokenPair, error) {
+	accessToken, err := NewToken(userID, ACCESS_TOKEN, jwtConfig.Secret, clientType, jwtConfig.AccessExpiration)
 	if err != nil {
-		return nil, errors.AuthError("Failed to generate access token", err)
+		return TokenPair{}, errors.AuthError("Failed to generate access token", err)
 	}
 
-	refreshToken, err := NewToken(userID, REFRESH_TOKEN, clientType, jwtConfig.Secret, jwtConfig.RefreshExpiration)
+	refreshToken, err := NewToken(userID, REFRESH_TOKEN, jwtConfig.Secret, clientType, jwtConfig.RefreshExpiration)
 	if err != nil {
-		return nil, errors.AuthError("Failed to generate refresh token", err)
+		return TokenPair{}, errors.AuthError("Failed to generate refresh token", err)
 	}
 
-	return &TokenPair{
-		AccessToken:  *accessToken,
-		RefreshToken: *refreshToken,
+	return TokenPair{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	}, nil
-}
-
-// ToTokenSlice converts the token pair to a slice of tokens
-func (tp *TokenPair) ToTokenSlice() []Token {
-	return []Token{tp.AccessToken, tp.RefreshToken}
 }

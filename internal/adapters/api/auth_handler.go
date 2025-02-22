@@ -43,8 +43,8 @@ func (h *AuthHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request)
 	}
 
 	response := authDto.TokenResponse{
-		AccessToken:  tokens[0].Token,
-		RefreshToken: tokens[1].Token,
+		AccessToken:  tokens.AccessToken.RawToken,
+		RefreshToken: tokens.RefreshToken.RawToken,
 	}
 
 	resp.JSON(w, http.StatusOK, response)
@@ -65,8 +65,8 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := authDto.TokenResponse{
-		AccessToken:  tokens[0].Token,
-		RefreshToken: tokens[1].Token,
+		AccessToken:  tokens.AccessToken.RawToken,
+		RefreshToken: tokens.RefreshToken.RawToken,
 	}
 
 	resp.JSON(w, http.StatusOK, response)
@@ -87,8 +87,8 @@ func (h *AuthHandler) LoginAnonymousUser(w http.ResponseWriter, r *http.Request)
 	}
 
 	response := authDto.TokenResponse{
-		AccessToken:  tokens[0].Token,
-		RefreshToken: tokens[1].Token,
+		AccessToken:  tokens.AccessToken.RawToken,
+		RefreshToken: tokens.RefreshToken.RawToken,
 	}
 
 	resp.JSON(w, http.StatusOK, response)

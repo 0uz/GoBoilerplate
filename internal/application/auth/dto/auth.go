@@ -1,7 +1,7 @@
 package auth
 
 type RefreshAccessTokenRequest struct {
-	RefreshToken string `json:"refresh_token" validate:"required"`
+	RefreshToken string `json:"refreshToken" validate:"required"`
 }
 
 type UserRegisterRequest struct {

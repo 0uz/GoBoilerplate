@@ -6,7 +6,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/ouz/goauthboilerplate/internal/domain/user"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
 )
 
@@ -18,43 +17,47 @@ const (
 )
 
 type Token struct {
-	ID         string
-	Token      string
-	TokenType  TokenType
-	Revoked    bool
-	Client     Client
-	ClientType string
-	User       user.User
-	UserID     string
-	ExpiresAt  time.Time
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-}
-
-type TokenClaims struct {
 	jwt.RegisteredClaims
-	UserId string `json:"uid"`
+	UserId     string     `json:"uid"`
+	RawToken   string     `json:"token"`
+	ClientType ClientType `json:"clientType"`
+	TokenType  TokenType  `json:"tokenType"`
 }
 
-// validateTokenInput validates the input parameters for token creation
-func validateTokenInput(userID string, tokenType TokenType, clientType string, jwtSecret string, expiration time.Duration) error {
+func validateTokenInput(userID string, tokenType TokenType, jwtSecret string, clientType ClientType, expiration time.Duration) error {
 	if jwtSecret == "" {
 		return errors.ValidationError("JWT secret cannot be empty", nil)
 	}
+
+	if clientType == "" {
+		return errors.ValidationError("Client type cannot be empty", nil)
+	}
+
+	if userID == "" {
+		return errors.ValidationError("User ID cannot be empty", nil)
+	}
+
+	if tokenType == "" {
+		return errors.ValidationError("Token type cannot be empty", nil)
+	}
+
+	if expiration <= 0 {
+		return errors.ValidationError("Expiration cannot be negative", nil)
+	}
+
 	return nil
 }
 
-// NewToken creates a new token instance with generated JWT
-func NewToken(userID string, tokenType TokenType, clientType string, jwtSecret string, expiration time.Duration) (*Token, error) {
-	if err := validateTokenInput(userID, tokenType, clientType, jwtSecret, expiration); err != nil {
-		return nil, err
+func NewToken(userID string, tokenType TokenType, jwtSecret string, clientType ClientType, expiration time.Duration) (Token, error) {
+	if err := validateTokenInput(userID, tokenType, jwtSecret, clientType, expiration); err != nil {
+		return Token{}, err
 	}
 
 	jti := uuid.New().String()
 	now := time.Now()
 	expiresAt := now.Add(expiration)
 
-	claims := TokenClaims{
+	claims := Token{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			ID:        jti,
@@ -64,37 +67,25 @@ func NewToken(userID string, tokenType TokenType, clientType string, jwtSecret s
 
 	tokenString, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(jwtSecret))
 	if err != nil {
-		return nil, errors.AuthError("Failed to generate token", err)
+		return Token{}, errors.AuthError("Failed to generate token", err)
 	}
 
-	return &Token{
-		ID:         jti,
-		Token:      tokenString,
-		TokenType:  tokenType,
-		Revoked:    false,
-		ClientType: clientType,
-		UserID:     userID,
-		ExpiresAt:  expiresAt,
-		CreatedAt:  now,
-		UpdatedAt:  now,
+	return Token{
+		RegisteredClaims: claims.RegisteredClaims,
+		UserId:           claims.UserId,
+		RawToken:         tokenString,
+		TokenType:        tokenType,
+		ClientType:       clientType,
 	}, nil
 }
 
 // Validate validates the token and returns its claims
-func (t *Token) Validate(jwtSecret string) (*TokenClaims, error) {
+func ValidateToken(tokenString string, jwtSecret string) (*Token, error) {
 	if jwtSecret == "" {
 		return nil, errors.ValidationError("JWT secret cannot be empty", nil)
 	}
 
-	if t.Revoked {
-		return nil, errors.UnauthorizedError("Token is revoked", nil)
-	}
-
-	if t.IsExpired() {
-		return nil, errors.UnauthorizedError("Token is expired", nil)
-	}
-
-	token, err := jwt.ParseWithClaims(t.Token, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Token{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.UnauthorizedError("Invalid token signing method", nil)
 		}
@@ -105,7 +96,7 @@ func (t *Token) Validate(jwtSecret string) (*TokenClaims, error) {
 		return nil, errors.UnauthorizedError("Invalid token", err)
 	}
 
-	claims, ok := token.Claims.(*TokenClaims)
+	claims, ok := token.Claims.(*Token)
 	if !ok {
 		return nil, errors.UnauthorizedError("Invalid token claims", nil)
 	}
@@ -113,22 +104,31 @@ func (t *Token) Validate(jwtSecret string) (*TokenClaims, error) {
 	return claims, nil
 }
 
-// Revoke marks the token as revoked
-func (t *Token) Revoke() {
-	t.Revoked = true
-	t.UpdatedAt = time.Now()
-}
-
-// IsExpired checks if the token is expired
 func (t *Token) IsExpired() bool {
-	return time.Now().After(t.ExpiresAt)
+	return time.Now().After(t.ExpiresAt.Time)
 }
 
-// GetCacheKey returns the cache key for this token based on its type and user
-func (t *Token) GetCacheKey() string {
-	prefix := "uat"
-	if t.TokenType == REFRESH_TOKEN {
-		prefix = "urt"
+func (t *Token) GetPrefix() string {
+	if t.TokenType == ACCESS_TOKEN {
+		return fmt.Sprintf("uat:%s:%s", t.UserId, string(t.ClientType))
 	}
-	return fmt.Sprintf("%s:%s:%s", prefix, t.UserID, t.ClientType)
+
+	return fmt.Sprintf("urt:%s:%s", t.UserId, string(t.ClientType))
+}
+
+func GeneratePrefix(tokenType TokenType, userID string, clientType ClientType) string {
+	prefix := "urt"
+	if tokenType == ACCESS_TOKEN {
+		prefix = "uat"
+	}
+
+	if clientType == "" {
+		return fmt.Sprintf("%s:%s", prefix, userID)
+	}
+
+	return fmt.Sprintf("%s:%s:%s", prefix, userID, string(clientType))
+}
+
+func (t *Token) SetClient(client Client) {
+	t.ClientType = client.ClientType
 }
