@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/ouz/goauthboilerplate/internal/adapters/api"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/middleware"
@@ -46,7 +46,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	
+
 	defer func() {
 		if err := postgres.CloseDatabaseConnection(db, logger); err != nil {
 			logger.WithError(err).Error("Failed to close database connection")

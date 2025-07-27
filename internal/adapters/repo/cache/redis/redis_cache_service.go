@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/ouz/goauthboilerplate/internal/config"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/redis/go-redis/v9"
 )
 
 type RedisCacheService interface {
@@ -80,7 +80,7 @@ func (r *redisCache) Set(ctx context.Context, prefix, key string, ttl time.Durat
 
 func (r *redisCache) Get(ctx context.Context, prefix, key string, result any) (bool, error) {
 	fullKey := buildRedisFullKey(prefix, key)
-	
+
 	cachedData, err := r.client.Get(ctx, fullKey).Bytes()
 	if err == redis.Nil {
 		return false, nil
