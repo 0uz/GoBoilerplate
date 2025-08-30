@@ -70,7 +70,7 @@ var (
 			Name: "cache_operations_total",
 			Help: "Total number of cache operations",
 		},
-		[]string{"operation", "result", "cache_type"},
+		[]string{"operation", "result", "cache_type", "cache_key"},
 	)
 )
 
@@ -87,23 +87,40 @@ func UpdateDatabaseConnections(count float64) {
 	DatabaseConnectionsGauge.Set(count)
 }
 
-func RecordCacheOperation(operation, result, cacheType string) {
-	CacheOperationsTotal.WithLabelValues(operation, result, cacheType).Inc()
+func RecordCacheOperation(operation, result, cacheType, cacheKey string) {
+	CacheOperationsTotal.WithLabelValues(operation, result, cacheType, cacheKey).Inc()
 }
 
-// Cache-specific helper functions
-func RecordCacheHit(cacheType string) {
-	RecordCacheOperation("get", "hit", cacheType)
+// Cache-specific helper functions with full cache key
+func RecordCacheHit(cacheType, cacheKey string) {
+	RecordCacheOperation("get", "hit", cacheType, cacheKey)
 }
 
-func RecordCacheMiss(cacheType string) {
-	RecordCacheOperation("get", "miss", cacheType)
+func RecordCacheMiss(cacheType, cacheKey string) {
+	RecordCacheOperation("get", "miss", cacheType, cacheKey)
 }
 
-func RecordCacheSet(cacheType string) {
-	RecordCacheOperation("set", "success", cacheType)
+func RecordCacheSet(cacheType, cacheKey string) {
+	RecordCacheOperation("set", "success", cacheType, cacheKey)
 }
 
-func RecordCacheDelete(cacheType string) {
-	RecordCacheOperation("delete", "success", cacheType)
+func RecordCacheDelete(cacheType, cacheKey string) {
+	RecordCacheOperation("delete", "success", cacheType, cacheKey)
+}
+
+// Legacy functions for backward compatibility (deprecated)
+func RecordCacheHitLegacy(cacheType string) {
+	RecordCacheOperation("get", "hit", cacheType, "unknown")
+}
+
+func RecordCacheMissLegacy(cacheType string) {
+	RecordCacheOperation("get", "miss", cacheType, "unknown")
+}
+
+func RecordCacheSetLegacy(cacheType string) {
+	RecordCacheOperation("set", "success", cacheType, "unknown")
+}
+
+func RecordCacheDeleteLegacy(cacheType string) {
+	RecordCacheOperation("delete", "success", cacheType, "unknown")
 }
