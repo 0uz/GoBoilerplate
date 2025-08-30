@@ -44,13 +44,11 @@ limits_config:
   ingestion_burst_size_mb: 32
   per_stream_rate_limit: 8MB
   per_stream_rate_limit_burst: 16MB
-
-chunk_store_config:
-  max_look_back_period: 0s
-
-table_manager:
-  retention_deletes_enabled: false
+  max_query_lookback: 0s
   retention_period: 168h
+
+# chunk_store_config is deprecated in Loki 3.x
+# table_manager is deprecated in Loki 3.x - retention is now handled by compactor
 
 compactor:
   working_directory: /loki/boltdb-shipper-compactor
@@ -58,3 +56,10 @@ compactor:
   retention_enabled: true
   retention_delete_delay: 2h
   retention_delete_worker_count: 150
+  delete_request_store: filesystem
+
+analytics:
+  reporting_enabled: false
+
+pattern_ingester:
+  enabled: true
