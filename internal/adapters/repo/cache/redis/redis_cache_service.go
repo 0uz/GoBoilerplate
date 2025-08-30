@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ouz/goauthboilerplate/internal/config"
+	"github.com/ouz/goauthboilerplate/internal/observability/metrics"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
 	"github.com/redis/go-redis/v9"
 )
@@ -75,6 +76,7 @@ func (r *redisCache) Set(ctx context.Context, prefix, key string, ttl time.Durat
 		return errors.GenericError("error setting value to redis", err)
 	}
 
+	metrics.RecordCacheSet("redis")
 	return nil
 }
 
@@ -83,6 +85,7 @@ func (r *redisCache) Get(ctx context.Context, prefix, key string, result any) (b
 
 	cachedData, err := r.client.Get(ctx, fullKey).Bytes()
 	if err == redis.Nil {
+		metrics.RecordCacheMiss("redis")
 		return false, nil
 	} else if err != nil {
 		return false, errors.GenericError("error getting value from redis", err)
@@ -92,6 +95,7 @@ func (r *redisCache) Get(ctx context.Context, prefix, key string, result any) (b
 		return false, errors.GenericError("error unmarshaling value", err)
 	}
 
+	metrics.RecordCacheHit("redis")
 	return true, nil
 }
 
@@ -111,6 +115,7 @@ func (r *redisCache) Evict(ctx context.Context, prefix, key string) error {
 	if err != nil {
 		return errors.GenericError("error deleting key from redis", err)
 	}
+	metrics.RecordCacheDelete("redis")
 	return nil
 }
 
@@ -129,6 +134,10 @@ func (r *redisCache) EvictByPrefix(ctx context.Context, prefix string) error {
 		err := r.client.Del(ctx, keys...).Err()
 		if err != nil {
 			return errors.GenericError("error deleting keys from redis", err)
+		}
+		// Record one delete operation per key
+		for range keys {
+			metrics.RecordCacheDelete("redis")
 		}
 	}
 	return nil

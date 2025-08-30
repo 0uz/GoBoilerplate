@@ -125,6 +125,10 @@ func IsNotFoundError(err error) bool {
 	return IsErrorCode(err, ErrCodeNotFound)
 }
 
+func IsUnauthorizedError(err error) bool {
+	return IsErrorCode(err, ErrCodeUnauthorized)
+}
+
 func InternalError(message string, err error) *AppError {
 	return NewAppError(ErrCodeInternal, TypeInternal, message, err, http.StatusInternalServerError)
 }

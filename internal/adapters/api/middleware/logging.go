@@ -6,44 +6,10 @@ import (
 	"time"
 
 	"github.com/ouz/goauthboilerplate/internal/config"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/ouz/goauthboilerplate/internal/observability/metrics"
 )
 
-var (
-	httpRequestsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "http_requests_total",
-			Help: "Total number of HTTP requests",
-		},
-		[]string{"method", "endpoint", "status_code"},
-	)
-
-	httpRequestDuration = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "http_request_duration_seconds",
-			Help:    "Duration of HTTP requests",
-			Buckets: prometheus.DefBuckets,
-		},
-		[]string{"method", "endpoint"},
-	)
-
-	httpResponseSize = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "http_response_size_bytes",
-			Help:    "Size of HTTP responses in bytes",
-			Buckets: prometheus.ExponentialBuckets(100, 10, 8), // 100B to 10GB
-		},
-		[]string{"method", "endpoint"},
-	)
-
-	httpRequestsInFlight = promauto.NewGauge(
-		prometheus.GaugeOpts{
-			Name: "http_requests_in_flight",
-			Help: "Number of HTTP requests currently being processed",
-		},
-	)
-)
+// HTTP metrics are now defined in the metrics package
 
 func Logging(logger *config.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
@@ -55,8 +21,8 @@ func Logging(logger *config.Logger) Middleware {
 			}
 
 			start := time.Now()
-			httpRequestsInFlight.Inc()
-			defer httpRequestsInFlight.Dec()
+			metrics.HTTPRequestsInFlight.Inc()
+			defer metrics.HTTPRequestsInFlight.Dec()
 
 			wrapper := &responseWriter{ResponseWriter: w, status: http.StatusOK}
 			next.ServeHTTP(wrapper, r)
@@ -67,9 +33,9 @@ func Logging(logger *config.Logger) Middleware {
 			statusCode := strconv.Itoa(wrapper.status)
 
 			// Prometheus metrics
-			httpRequestsTotal.WithLabelValues(r.Method, endpoint, statusCode).Inc()
-			httpRequestDuration.WithLabelValues(r.Method, endpoint).Observe(duration.Seconds())
-			httpResponseSize.WithLabelValues(r.Method, endpoint).Observe(float64(wrapper.written))
+			metrics.HTTPRequestsTotal.WithLabelValues(r.Method, endpoint, statusCode).Inc()
+			metrics.HTTPRequestDuration.WithLabelValues(r.Method, endpoint).Observe(duration.Seconds())
+			metrics.HTTPResponseSize.WithLabelValues(r.Method, endpoint).Observe(float64(wrapper.written))
 
 			// Create log entry with additional fields
 			entry := logger.WithFields(map[string]any{
