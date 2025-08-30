@@ -28,10 +28,6 @@ A robust boilerplate with authentication built with Go, featuring JWT authentica
 ## Quick Start
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd GoBoilerplate
-
 # Start everything (app + monitoring)
 make start-all
 
