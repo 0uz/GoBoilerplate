@@ -1,0 +1,19 @@
+meta {
+  name: Get User
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/users/me
+  body: none
+  auth: bearer
+}
+
+headers {
+  {{clientKey}}: {{clientSecret}}
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

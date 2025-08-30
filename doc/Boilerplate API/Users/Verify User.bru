@@ -1,0 +1,15 @@
+meta {
+  name: Verify User
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/users/email/confirm?key=1234
+  body: none
+  auth: none
+}
+
+params:query {
+  key: 1234
+}

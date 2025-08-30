@@ -1,0 +1,11 @@
+{
+  "version": "1",
+  "name": "Boilerplate API",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ],
+  "size": 0.0022830963134765625,
+  "filesCount": 11
+}

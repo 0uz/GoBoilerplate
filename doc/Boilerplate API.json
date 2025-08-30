@@ -1,0 +1,422 @@
+{
+  "name": "Boilerplate API",
+  "version": "1",
+  "items": [
+    {
+      "type": "folder",
+      "name": "Auth",
+      "filename": "Auth",
+      "items": [
+        {
+          "type": "http",
+          "name": "Login Anonymous",
+          "filename": "Login Anonymous.bru",
+          "seq": 2,
+          "settings": {},
+          "tags": [],
+          "request": {
+            "url": "{{baseUrl}}/auth/login/anonymous",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "{{clientKey}}",
+                "value": "{{clientSecret}}",
+                "enabled": true
+              }
+            ],
+            "params": [],
+            "body": {
+              "mode": "json",
+              "json": "{\r\n  \"email\": \"f28f22ab-3587-4b70-a941-3baab328fae9\"\r\n}",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "Login",
+          "filename": "Login.bru",
+          "seq": 1,
+          "settings": {},
+          "tags": [],
+          "request": {
+            "url": "{{baseUrl}}/auth/login",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "{{clientKey}}",
+                "value": "{{clientSecret}}",
+                "enabled": true
+              }
+            ],
+            "params": [],
+            "body": {
+              "mode": "json",
+              "json": "{\r\n  \"email\": \"test@test.com\",\r\n  \"password\": \"12345678\"\r\n}",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "Logout All",
+          "filename": "Logout All.bru",
+          "seq": 7,
+          "settings": {},
+          "tags": [],
+          "request": {
+            "url": "{{baseUrl}}/auth/logout",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "{{clientKey}}",
+                "value": "{{clientSecret}}",
+                "enabled": true
+              }
+            ],
+            "params": [],
+            "body": {
+              "mode": "none",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "bearer",
+              "bearer": {
+                "token": "{{accessToken}}"
+              }
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "Logout",
+          "filename": "Logout.bru",
+          "seq": 6,
+          "settings": {},
+          "tags": [],
+          "request": {
+            "url": "{{baseUrl}}/auth/logout",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "{{clientKey}}",
+                "value": "{{clientSecret}}",
+                "enabled": true
+              }
+            ],
+            "params": [],
+            "body": {
+              "mode": "none",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "bearer",
+              "bearer": {
+                "token": "{{accessToken}}"
+              }
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "Refresh Token",
+          "filename": "Refresh Token.bru",
+          "seq": 3,
+          "settings": {},
+          "tags": [],
+          "request": {
+            "url": "{{baseUrl}}/auth/token/refresh",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "Client-Secret",
+                "value": "{{clientSecret}}",
+                "enabled": true
+              }
+            ],
+            "params": [],
+            "body": {
+              "mode": "json",
+              "json": "{\r\n  \"refreshToken\": \"token\"\r\n}",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "Register Anonymous",
+          "filename": "Register Anonymous.bru",
+          "seq": 5,
+          "settings": {},
+          "tags": [],
+          "request": {
+            "url": "{{baseUrl}}/auth/register/anonymous",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "{{clientKey}}",
+                "value": "{{clientSecret}}",
+                "enabled": true
+              }
+            ],
+            "params": [],
+            "body": {
+              "mode": "none",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "Register User",
+          "filename": "Register User.bru",
+          "seq": 4,
+          "settings": {},
+          "tags": [],
+          "request": {
+            "url": "{{baseUrl}}/auth/register",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "{{clientKey}}",
+                "value": "{{clientSecret}}",
+                "enabled": true
+              }
+            ],
+            "params": [],
+            "body": {
+              "mode": "json",
+              "json": "{\r\n  \"email\": \"test@test.com\",\r\n  \"username\": \"test@test.com\",\r\n  \"password\": \"12345678\"\r\n}",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "folder",
+      "name": "Users",
+      "filename": "Users",
+      "items": [
+        {
+          "type": "http",
+          "name": "Get User",
+          "filename": "Get User.bru",
+          "seq": 3,
+          "settings": {},
+          "tags": [],
+          "request": {
+            "url": "{{baseUrl}}/users/me",
+            "method": "GET",
+            "headers": [
+              {
+                "name": "{{clientKey}}",
+                "value": "{{clientSecret}}",
+                "enabled": true
+              }
+            ],
+            "params": [],
+            "body": {
+              "mode": "none",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "bearer",
+              "bearer": {
+                "token": "{{accessToken}}"
+              }
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "Resend Verify User",
+          "filename": "Resend Verify User.bru",
+          "seq": 2,
+          "settings": {},
+          "tags": [],
+          "request": {
+            "url": "{{baseUrl}}/users/email/confirm/resend?key=1234",
+            "method": "GET",
+            "headers": [],
+            "params": [
+              {
+                "name": "key",
+                "value": "1234",
+                "type": "query",
+                "enabled": true
+              }
+            ],
+            "body": {
+              "mode": "none",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "Verify User",
+          "filename": "Verify User.bru",
+          "seq": 1,
+          "settings": {},
+          "tags": [],
+          "request": {
+            "url": "{{baseUrl}}/users/email/confirm?key=1234",
+            "method": "GET",
+            "headers": [],
+            "params": [
+              {
+                "name": "key",
+                "value": "1234",
+                "type": "query",
+                "enabled": true
+              }
+            ],
+            "body": {
+              "mode": "none",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "activeEnvironmentUid": "IQJU16D4zNCJxUcVOvpVI",
+  "environments": [
+    {
+      "variables": [
+        {
+          "name": "baseUrl",
+          "value": "http://localhost:8080",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "clientSecret",
+          "value": "your-client-secret",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "accessToken",
+          "value": "your-access-token",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        },
+        {
+          "name": "clientKey",
+          "value": "Client-Secret",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        }
+      ],
+      "name": "local"
+    }
+  ],
+  "brunoConfig": {
+    "version": "1",
+    "name": "Boilerplate API",
+    "type": "collection",
+    "ignore": [
+      "node_modules",
+      ".git"
+    ],
+    "size": 0.0022830963134765625,
+    "filesCount": 11
+  }
+}

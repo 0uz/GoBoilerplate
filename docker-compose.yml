@@ -51,7 +51,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./migrations/1-init.sql:/docker-entrypoint-initdb.d/1-init.sql
-      - ./migrations/2-init-user-ddl.sql:/docker-entrypoint-initdb.d/2-init-user-ddl.sql
     healthcheck:
       test: "pg_isready -d ${PG_DB_NAME} -U ${PG_DB_USER}"
       interval: 1s
