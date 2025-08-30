@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ouz/goauthboilerplate/internal/adapters/api/middleware"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
 	"github.com/ouz/goauthboilerplate/internal/adapters/repo/cache/redis"
 	"github.com/ouz/goauthboilerplate/internal/config"
@@ -68,9 +69,11 @@ func (s *authService) FindClientBySecretCached(ctx context.Context, clientSecret
 	cacheKey := fmt.Sprintf("client:%s", clientSecret)
 
 	if found, _ := s.redisCache.Get(ctx, cacheKey, clientSecret, &cachedClient); found {
+		middleware.RecordCacheHit("client")
 		return cachedClient, nil
 	}
 
+	middleware.RecordCacheMiss("client")
 	clientFromDB, err := s.authRepository.FindClientBySecret(ctx, clientSecret)
 	if err != nil {
 		return auth.Client{}, err
@@ -148,28 +151,35 @@ func (s *authService) ValidateToken(ctx context.Context, tokenStr string) (*auth
 func (s *authService) Login(ctx context.Context, email, password string) (auth.TokenPair, error) {
 	user, err := s.userService.FindByEmail(ctx, email)
 	if err != nil {
+		middleware.RecordAuthAttempt("login", "error")
 		return auth.TokenPair{}, errors.InternalError("Failed to find user", err)
 	}
 	if user == nil {
+		middleware.RecordAuthAttempt("login", "failed")
 		return auth.TokenPair{}, errors.NotFoundError("User not found", nil)
 	}
 
 	if !user.IsPasswordValid(password) {
+		middleware.RecordAuthAttempt("login", "failed")
 		return auth.TokenPair{}, errors.UnauthorizedError("Invalid credentials", nil)
 	}
 
+	middleware.RecordAuthAttempt("login", "success")
 	return s.GenerateToken(ctx, user.ID)
 }
 
 func (s *authService) LoginAnonymous(ctx context.Context, email string) (auth.TokenPair, error) {
 	user, err := s.userService.FindByEmail(ctx, email)
 	if err != nil {
+		middleware.RecordAuthAttempt("anonymous_login", "error")
 		return auth.TokenPair{}, errors.InternalError("Failed to find user", err)
 	}
 	if user == nil {
+		middleware.RecordAuthAttempt("anonymous_login", "failed")
 		return auth.TokenPair{}, errors.NotFoundError("User not found", nil)
 	}
 
+	middleware.RecordAuthAttempt("anonymous_login", "success")
 	return s.GenerateToken(ctx, user.ID)
 }
 
@@ -204,7 +214,7 @@ func (s *authService) ValidateTokenAndGetUser(ctx context.Context, token string)
 
 	claims.SetClient(client)
 	claims.SetTokenType(auth.ACCESS_TOKEN)
-	
+
 	revoked, err := s.IsTokenRevoked(ctx, claims)
 	if err != nil {
 		return user.User{}, errors.InternalError("Failed to check if token is revoked", err)

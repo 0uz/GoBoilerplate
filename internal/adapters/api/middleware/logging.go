@@ -1,69 +1,75 @@
 package middleware
 
 import (
-	// "fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ouz/goauthboilerplate/internal/config"
-	// "github.com/prometheus/client_golang/prometheus"
-	// "github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-// var (
-// 	httpRequestsTotal = promauto.NewCounterVec(
-// 		prometheus.CounterOpts{
-// 			Name: "http_requests_total",
-// 			Help: "Total number of HTTP requests",
-// 		},
-// 		[]string{"method", "path", "status", "error"},
-// 	)
+var (
+	httpRequestsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Total number of HTTP requests",
+		},
+		[]string{"method", "endpoint", "status_code"},
+	)
 
-// 	httpRequestDuration = promauto.NewHistogramVec(
-// 		prometheus.HistogramOpts{
-// 			Name:    "http_request_duration_seconds",
-// 			Help:    "Duration of HTTP requests",
-// 			Buckets: []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10},
-// 		},
-// 		[]string{"method", "path", "status"},
-// 	)
+	httpRequestDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "Duration of HTTP requests",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"method", "endpoint"},
+	)
 
-// 	httpResponseSize = promauto.NewHistogramVec(
-// 		prometheus.HistogramOpts{
-// 			Name:    "http_response_size_bytes",
-// 			Help:    "Size of HTTP responses in bytes",
-// 			Buckets: prometheus.ExponentialBuckets(100, 10, 8), // 100B to 10GB
-// 		},
-// 		[]string{"method", "path"},
-// 	)
+	httpResponseSize = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_response_size_bytes",
+			Help:    "Size of HTTP responses in bytes",
+			Buckets: prometheus.ExponentialBuckets(100, 10, 8), // 100B to 10GB
+		},
+		[]string{"method", "endpoint"},
+	)
 
-// 	activeConnections = promauto.NewGauge(
-// 		prometheus.GaugeOpts{
-// 			Name: "http_active_connections",
-// 			Help: "Number of active HTTP connections",
-// 		},
-// 	)
-// )
+	httpRequestsInFlight = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "http_requests_in_flight",
+			Help: "Number of HTTP requests currently being processed",
+		},
+	)
+)
 
 func Logging(logger *config.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Skip metrics endpoint from being monitored
+			if r.URL.Path == "/metrics" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			start := time.Now()
-			// activeConnections.Inc()
-			// defer activeConnections.Dec()
+			httpRequestsInFlight.Inc()
+			defer httpRequestsInFlight.Dec()
 
 			wrapper := &responseWriter{ResponseWriter: w, status: http.StatusOK}
 			next.ServeHTTP(wrapper, r)
 			duration := time.Since(start)
 
-			// Determine error status
-			// isError := wrapper.status >= 400
-			// errorLabel := fmt.Sprintf("%v", isError)
+			// Sanitize endpoint for better grouping
+			endpoint := sanitizeEndpoint(r.URL.Path)
+			statusCode := strconv.Itoa(wrapper.status)
 
 			// Prometheus metrics
-			// httpRequestsTotal.WithLabelValues(r.Method, r.URL.Path, fmt.Sprintf("%d", wrapper.status), errorLabel).Inc()
-			// httpRequestDuration.WithLabelValues(r.Method, r.URL.Path, fmt.Sprintf("%d", wrapper.status)).Observe(duration.Seconds())
-			// httpResponseSize.WithLabelValues(r.Method, r.URL.Path).Observe(float64(wrapper.written))
+			httpRequestsTotal.WithLabelValues(r.Method, endpoint, statusCode).Inc()
+			httpRequestDuration.WithLabelValues(r.Method, endpoint).Observe(duration.Seconds())
+			httpResponseSize.WithLabelValues(r.Method, endpoint).Observe(float64(wrapper.written))
 
 			// Create log entry with additional fields
 			entry := logger.WithFields(map[string]any{
@@ -107,4 +113,49 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	n, err := rw.ResponseWriter.Write(b)
 	rw.written += int64(n)
 	return n, err
+}
+
+// sanitizeEndpoint removes dynamic parts from URL path for better grouping
+func sanitizeEndpoint(path string) string {
+	if len(path) == 0 {
+		return "/"
+	}
+
+	// Remove query parameters
+	if idx := len(path); idx > 0 {
+		for i, c := range path {
+			if c == '?' {
+				idx = i
+				break
+			}
+		}
+		path = path[:idx]
+	}
+
+	// Group similar endpoints
+	switch {
+	case path == "/":
+		return "/"
+	case path == "/live":
+		return "/live"
+	case path == "/ready":
+		return "/ready"
+	case path == "/metrics":
+		return "/metrics"
+	default:
+		// For API endpoints, group by base path
+		if len(path) > 8 && path[:8] == "/api/v1/" {
+			rest := path[8:]
+			if len(rest) > 0 {
+				// Extract first segment after /api/v1/
+				for i, c := range rest {
+					if c == '/' && i > 0 {
+						return "/api/v1/" + rest[:i] + "/*"
+					}
+				}
+				return "/api/v1/" + rest
+			}
+		}
+		return path
+	}
 }

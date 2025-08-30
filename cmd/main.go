@@ -115,7 +115,7 @@ func addV1Prefix(r *http.ServeMux, logger *config.Logger) *http.ServeMux {
 	// tokenBucket := middleware.NewTokenBucket(1, 3) // Reverse proxy rate limiter preferred
 	chain := middleware.Chain(
 		// middleware.RateLimitMiddleware(tokenBucket),
-		middleware.Logging(logger),
+		middleware.Logging(logger), // Now includes HTTP metrics
 		middleware.Recovery(logger),
 	)
 	v1 := http.NewServeMux()
