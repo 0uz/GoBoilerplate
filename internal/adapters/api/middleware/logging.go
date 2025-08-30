@@ -14,8 +14,7 @@ import (
 func Logging(logger *config.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Skip metrics endpoint from being monitored
-			if r.URL.Path == "/metrics" {
+			if r.URL.Path == "/api/v1/metrics" {
 				next.ServeHTTP(w, r)
 				return
 			}
