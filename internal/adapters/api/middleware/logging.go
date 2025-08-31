@@ -22,8 +22,8 @@ func Logging(logger *config.Logger) Middleware {
 			next.ServeHTTP(wrapper, r)
 			duration := time.Since(start)
 
-			// Sanitize endpoint for better grouping
-			endpoint := sanitizeEndpoint(r.URL.Path)
+			// Use full path for detailed monitoring
+			endpoint := r.URL.Path
 			statusCode := strconv.Itoa(wrapper.status)
 
 			// Prometheus metrics
@@ -73,43 +73,4 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	n, err := rw.ResponseWriter.Write(b)
 	rw.written += int64(n)
 	return n, err
-}
-
-// sanitizeEndpoint removes dynamic parts from URL path for better grouping
-func sanitizeEndpoint(path string) string {
-	if len(path) == 0 {
-		return "/"
-	}
-
-	// Remove query parameters
-	if idx := len(path); idx > 0 {
-		for i, c := range path {
-			if c == '?' {
-				idx = i
-				break
-			}
-		}
-		path = path[:idx]
-	}
-
-	// Group similar endpoints
-	switch path {
-	case "/":
-		return "/"
-	default:
-		// For API endpoints, group by base path
-		if len(path) > 8 && path[:8] == "/api/v1/" {
-			rest := path[8:]
-			if len(rest) > 0 {
-				// Extract first segment after /api/v1/
-				for i, c := range rest {
-					if c == '/' && i > 0 {
-						return "/api/v1/" + rest[:i] + "/*"
-					}
-				}
-				return "/api/v1/" + rest
-			}
-		}
-		return path
-	}
 }

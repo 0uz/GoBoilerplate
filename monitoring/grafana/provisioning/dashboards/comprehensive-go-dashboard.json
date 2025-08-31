@@ -242,7 +242,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"goauthboiler-app\"}[5m]))",
+          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"goauthboiler-app\",endpoint!~\"/health|/metrics|/favicon.ico\"}[5m]))",
           "refId": "A"
         }
       ],
@@ -309,7 +309,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(http_requests_total{job=\"goauthboiler-app\",status_code=~\"2..\"}[5m]) / rate(http_requests_total{job=\"goauthboiler-app\"}[5m]) * 100",
+          "expr": "rate(http_requests_total{job=\"goauthboiler-app\",status_code=~\"2..\",endpoint!~\"/health|/metrics|/favicon.ico\"}[5m]) / rate(http_requests_total{job=\"goauthboiler-app\",endpoint!~\"/health|/metrics|/favicon.ico\"}[5m]) * 100",
           "refId": "A"
         }
       ],
@@ -350,7 +350,7 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
+        "w": 8,
         "x": 16,
         "y": 1
       },
@@ -376,78 +376,11 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(cache_operations_total{result=\"hit\"}[5m]) / (rate(cache_operations_total{result=\"hit\"}[5m]) + rate(cache_operations_total{result=\"miss\"}[5m])) * 100",
+          "expr": "sum(rate(cache_operations_total{result=\"hit\"}[5m])) / (sum(rate(cache_operations_total{result=\"hit\"}[5m])) + sum(rate(cache_operations_total{result=\"miss\"}[5m]))) * 100",
           "refId": "A"
         }
       ],
       "title": "🎯 Cache Hit %",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1000
-              },
-              {
-                "color": "red",
-                "value": 5000
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 20,
-        "y": 1
-      },
-      "id": 7,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "10.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "active_sessions",
-          "refId": "A"
-        }
-      ],
-      "title": "👥 Active Sessions",
       "type": "stat"
     },
     {
@@ -598,7 +531,7 @@
             "uid": "prometheus"
           },
           "expr": "sum by (method, endpoint, status_code) (rate(http_requests_total{job=\"goauthboiler-app\"}[5m]))",
-          "legendFormat": "{{method}} {{endpoint}} ({{status_code}})",
+          "legendFormat": "{{method}} {{endpoint}} - {{status_code}}",
           "refId": "A"
         }
       ],
@@ -1217,7 +1150,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "rate({container=\"goauthboiler\"} |= \"ERROR\" [5m])",
+          "expr": "sum(rate({container=\"goauthboiler\"} |~ \"ERROR\" [5m]))",
           "legendFormat": "ERROR",
           "refId": "A"
         },
@@ -1226,7 +1159,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "rate({container=\"goauthboiler\"} |= \"WARN\" [5m])",
+          "expr": "sum(rate({container=\"goauthboiler\"} |~ \"WARN\" [5m]))",
           "legendFormat": "WARN",
           "refId": "B"
         },
@@ -1235,7 +1168,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "rate({container=\"goauthboiler\"} |= \"INFO\" [5m])",
+          "expr": "sum(rate({container=\"goauthboiler\"} |~ \"INFO\" [5m]))",
           "legendFormat": "INFO",
           "refId": "C"
         },
@@ -1244,7 +1177,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "rate({container=\"goauthboiler\"} |= \"DEBUG\" [5m])",
+          "expr": "sum(rate({container=\"goauthboiler\"} |~ \"DEBUG\" [5m]))",
           "legendFormat": "DEBUG",
           "refId": "D"
         }
@@ -1451,7 +1384,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{container=\"goauthboiler\"} |= \"ERROR\"",
+          "expr": "{container=\"goauthboiler\"} |~ \"ERROR\"",
           "refId": "A"
         }
       ],
@@ -1486,7 +1419,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{container=\"goauthboiler\"} |= \"failed\" or {container=\"goauthboiler\"} |= \"Failed\" or {container=\"goauthboiler\"} |= \"fail\"",
+          "expr": "{container=\"goauthboiler\"} |~ \"(?i)(failed|fail)\"",
           "refId": "A"
         }
       ],
@@ -1608,44 +1541,14 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (cache_key) (rate(cache_operations_total{result=\"hit\"}[5m]))",
+          "expr": "topk(20, sum by (cache_key) (rate(cache_operations_total[5m])))",
           "format": "table",
+          "instant": true,
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (cache_key) (rate(cache_operations_total{result=\"miss\"}[5m]))",
-          "format": "table",
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (cache_key) (rate(cache_operations_total{result=\"hit\"}[5m])) / (sum by (cache_key) (rate(cache_operations_total{result=\"hit\"}[5m])) + sum by (cache_key) (rate(cache_operations_total{result=\"miss\"}[5m]))) * 100",
-          "format": "table",
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (cache_key) (rate(cache_operations_total{operation=\"set\"}[5m]))",
-          "format": "table",
-          "refId": "D"
         }
       ],
-      "title": "🎯 Cache Performance by Key (Ranked by Hit Ratio)",
+      "title": "🎯 Cache Performance by Key (Top 20 Most Active)",
       "transformations": [
-        {
-          "id": "merge",
-          "options": {}
-        },
         {
           "id": "organize",
           "options": {
@@ -1654,16 +1557,10 @@
             },
             "indexByName": {
               "cache_key": 0,
-              "Value #A": 1,
-              "Value #B": 2,
-              "Value #C": 3,
-              "Value #D": 4
+              "Value": 1
             },
             "renameByName": {
-              "Value #A": "Hit Rate",
-              "Value #B": "Miss Rate", 
-              "Value #C": "Hit Ratio %",
-              "Value #D": "Set Rate",
+              "Value": "Operations Rate",
               "cache_key": "Cache Key"
             }
           }
