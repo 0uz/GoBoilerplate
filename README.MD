@@ -17,7 +17,7 @@ A robust boilerplate with authentication built with Go, featuring JWT authentica
 - Comprehensive monitoring with Prometheus & Grafana
 - Real-time metrics and alerting
 - Cross-platform build automation with Makefile
-- Bruno collections for API testing
+- Hoppscotch collections for API testing
 
 ## Prerequisites
 
@@ -148,7 +148,7 @@ make test-coverage    # Run tests with coverage
 
 ### API Testing
 Import the provided test collections:
-- **Bruno Collection**: `doc/Boilerplate API/` 
+- **Hoppscotch Collection**: `doc/` 
 
 ## Development Workflow
 

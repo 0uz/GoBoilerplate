@@ -1,0 +1,426 @@
+{
+  "v": 10,
+  "name": "Boilerplate go",
+  "folders": [
+    {
+      "v": 10,
+      "name": "Auth",
+      "folders": [],
+      "requests": [
+        {
+          "v": "15",
+          "name": "Login",
+          "endpoint": "<<baseUrl>>/auth/login",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "<<clientKey>>",
+              "value": "<<clientSecret>>",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "params": [],
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": "application/json",
+            "body": "{\r\n    \"email\" : \"test@test.com\",\r\n    \"password\" : \"12345678\"\r\n}"
+          },
+          "requestVariables": [],
+          "responses": {},
+          "preRequestScript": "",
+          "testScript": ""
+        },
+        {
+          "v": "15",
+          "name": "Login Anonymous",
+          "endpoint": "<<baseUrl>>/auth/login/anonymous",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "<<clientKey>>",
+              "value": "<<clientSecret>>",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "params": [],
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": "application/json",
+            "body": "{\n    \"email\": \"c772126c-93ac-40ce-aa77-b580a08bcf6a\"\n}"
+          },
+          "requestVariables": [],
+          "responses": {},
+          "preRequestScript": "",
+          "testScript": ""
+        },
+        {
+          "v": "15",
+          "name": "Refresh Token",
+          "endpoint": "<<baseUrl>>/auth/token/refresh",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "Client-Secret",
+              "value": "<<clientSecret>>",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "params": [],
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": "application/json",
+            "body": "{\r\n    \"refreshToken\":\"token\"\r\n}"
+          },
+          "requestVariables": [],
+          "responses": {},
+          "preRequestScript": "",
+          "testScript": ""
+        },
+        {
+          "v": "15",
+          "name": "Register User",
+          "endpoint": "<<baseUrl>>/auth/register",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "<<clientKey>>",
+              "value": "<<clientSecret>>",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "params": [],
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": "application/json",
+            "body": "{\r\n    \"email\": \"test@test.com\",\r\n    \"username\": \"test@test.com\",\r\n    \"password\":\"12345678\"\r\n}"
+          },
+          "requestVariables": [],
+          "responses": {},
+          "preRequestScript": "",
+          "testScript": ""
+        },
+        {
+          "v": "15",
+          "name": "Register Anonymous",
+          "endpoint": "<<baseUrl>>/auth/register/anonymous",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "<<clientKey>>",
+              "value": "<<clientSecret>>",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "params": [],
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": null,
+            "body": null
+          },
+          "requestVariables": [],
+          "responses": {},
+          "preRequestScript": "",
+          "testScript": ""
+        },
+        {
+          "v": "15",
+          "name": "Logout",
+          "endpoint": "<<baseUrl>>/auth/logout",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "<<clientKey>>",
+              "value": "<<clientSecret>>",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "params": [],
+          "auth": {
+            "authType": "bearer",
+            "authActive": true,
+            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzYyMDY1NDksImp0aSI6ImVmNTdhZjM0LTk5N2YtNDcyYi05NzNhLTI3NmI1ODlkYjNhNSIsInVpZCI6IjIwNzNjYzdhLWIyNjItNDM5MC05MjhmLTAwOWFkMWNjYjc4OSJ9.zSfy_nz9L6S-kzXO3d8ADGWSjhwhqmPBzFOmuvcjY8s"
+          },
+          "body": {
+            "contentType": null,
+            "body": null
+          },
+          "requestVariables": [],
+          "responses": {},
+          "preRequestScript": "",
+          "testScript": ""
+        },
+        {
+          "v": "15",
+          "name": "Logout All",
+          "endpoint": "<<baseUrl>>/auth/logout",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "<<clientKey>>",
+              "value": "<<clientSecret>>",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "params": [],
+          "auth": {
+            "authType": "bearer",
+            "authActive": true,
+            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzYyMDY1NDksImp0aSI6ImVmNTdhZjM0LTk5N2YtNDcyYi05NzNhLTI3NmI1ODlkYjNhNSIsInVpZCI6IjIwNzNjYzdhLWIyNjItNDM5MC05MjhmLTAwOWFkMWNjYjc4OSJ9.zSfy_nz9L6S-kzXO3d8ADGWSjhwhqmPBzFOmuvcjY8s"
+          },
+          "body": {
+            "contentType": null,
+            "body": null
+          },
+          "requestVariables": [],
+          "responses": {},
+          "preRequestScript": "",
+          "testScript": ""
+        }
+      ],
+      "auth": {
+        "authType": "inherit",
+        "authActive": true
+      },
+      "headers": [],
+      "variables": [],
+      "_ref_id": "coll_mezja0y8_7fac615e-06b3-48c8-b479-ccdf2d830159"
+    },
+    {
+      "v": 10,
+      "name": "Users",
+      "folders": [],
+      "requests": [
+        {
+          "v": "15",
+          "name": "Get User",
+          "endpoint": "<<url>>/users/me",
+          "method": "GET",
+          "headers": [
+            {
+              "key": "<<clientKey>>",
+              "value": "<<clientSecret>>",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "params": [],
+          "auth": {
+            "authType": "bearer",
+            "authActive": true,
+            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzczMTY5MDksImp0aSI6IjQwYTk0NjJjLTgwMTAtNDgwNS1hOGIyLTdkMDYxNTczNjAxNyIsInVpZCI6IjE3NGVhZDIxLTE2NzktNGQ3Ni05YjNjLTg0OTRmZThhM2FkNyJ9.k90SIpadAeRauljJ6jOQ0lNUu0FJvqjqt-_Fs_noeeQ"
+          },
+          "body": {
+            "contentType": null,
+            "body": null
+          },
+          "requestVariables": [],
+          "responses": {},
+          "preRequestScript": "",
+          "testScript": ""
+        },
+        {
+          "v": "15",
+          "name": "Verify User",
+          "endpoint": "<<baseUrl>>/users/email/confirm",
+          "method": "GET",
+          "headers": [],
+          "params": [
+            {
+              "key": "key",
+              "value": "1234",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": null,
+            "body": null
+          },
+          "requestVariables": [],
+          "responses": {},
+          "preRequestScript": "",
+          "testScript": ""
+        },
+        {
+          "v": "15",
+          "name": "Resend Verify User",
+          "endpoint": "<<baseUrl>>/users/email/confirm/resend",
+          "method": "GET",
+          "headers": [],
+          "params": [
+            {
+              "key": "key",
+              "value": "1234",
+              "active": true,
+              "description": ""
+            }
+          ],
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "body": {
+            "contentType": null,
+            "body": null
+          },
+          "requestVariables": [],
+          "responses": {},
+          "preRequestScript": "",
+          "testScript": ""
+        }
+      ],
+      "auth": {
+        "authType": "inherit",
+        "authActive": true
+      },
+      "headers": [],
+      "variables": [],
+      "_ref_id": "coll_mezjkga2_3e92fc60-bd99-40bc-8964-1d5042a99f38"
+    },
+    {
+      "v": 10,
+      "name": "Util",
+      "folders": [],
+      "requests": [
+        {
+          "v": "15",
+          "endpoint": "<<localhost>>/ready",
+          "name": "Ready",
+          "params": [],
+          "headers": [],
+          "method": "GET",
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "preRequestScript": "",
+          "testScript": "",
+          "body": {
+            "contentType": null,
+            "body": null
+          },
+          "requestVariables": [],
+          "responses": {}
+        },
+        {
+          "v": "15",
+          "endpoint": "<<localhost>>/live",
+          "name": "Live",
+          "params": [],
+          "headers": [],
+          "method": "GET",
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "preRequestScript": "",
+          "testScript": "",
+          "body": {
+            "contentType": null,
+            "body": null
+          },
+          "requestVariables": [],
+          "responses": {}
+        },
+        {
+          "v": "15",
+          "endpoint": "<<localhost>>/metrics",
+          "name": "Metrics",
+          "params": [],
+          "headers": [],
+          "method": "GET",
+          "auth": {
+            "authType": "inherit",
+            "authActive": true
+          },
+          "preRequestScript": "",
+          "testScript": "",
+          "body": {
+            "contentType": null,
+            "body": null
+          },
+          "requestVariables": [],
+          "responses": {}
+        }
+      ],
+      "auth": {
+        "authType": "inherit",
+        "authActive": true
+      },
+      "headers": [],
+      "variables": [],
+      "_ref_id": "coll_mezjlhic_6d5c46b1-607e-47f0-87b9-9923a51a4091"
+    }
+  ],
+  "requests": [],
+  "auth": {
+    "authType": "none",
+    "authActive": true
+  },
+  "headers": [],
+  "variables": [
+    {
+      "key": "baseUrl",
+      "initialValue": "http://localhost:8080<<prefix>>",
+      "currentValue": "",
+      "secret": false
+    },
+    {
+      "key": "clientSecret",
+      "initialValue": "bce2a458-0373-47b2-9c11-97a8075a395b",
+      "currentValue": "",
+      "secret": false
+    },
+    {
+      "key": "accessToken",
+      "initialValue": "your-access-token",
+      "currentValue": "",
+      "secret": false
+    },
+    {
+      "key": "clientKey",
+      "currentValue": "",
+      "initialValue": "x-client-key",
+      "secret": false
+    },
+    {
+      "key": "prefix",
+      "currentValue": "",
+      "initialValue": "/api/v1",
+      "secret": false
+    },
+    {
+      "key": "localhost",
+      "currentValue": "",
+      "initialValue": "http://localhost:8080",
+      "secret": false
+    }
+  ],
+  "_ref_id": "coll_mezja0y8_8a2bf08a-cf13-40fe-8bf4-da26f6479c46"
+}
