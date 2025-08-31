@@ -67,13 +67,11 @@ func run() error {
 
 	response.InitResponseLogger(logger)
 
-	mainRouter := http.NewServeMux()
+	businessRouter := http.NewServeMux()
+	setupServiceAndRoutes(businessRouter, db, redisClient)
 
-	mainRouter.Handle("/metrics", promhttp.Handler())
-
-	setupHealthChecks(mainRouter, db)
-	setupServiceAndRoutes(mainRouter, db, redisClient)
-	mainRouter = addV1Prefix(mainRouter, logger)
+	// Create final router with monitoring endpoints and V1 business routes
+	mainRouter := createFinalRouter(businessRouter, db, logger)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%s", config.Get().App.Port),
@@ -111,22 +109,22 @@ func run() error {
 	return nil
 }
 
-func addV1Prefix(r *http.ServeMux, logger *config.Logger) *http.ServeMux {
-	// tokenBucket := middleware.NewTokenBucket(1, 3) // Reverse proxy rate limiter preferred
+func createFinalRouter(businessRouter *http.ServeMux, db *gorm.DB, logger *config.Logger) *http.ServeMux {
+	// Create middleware chain for business endpoints
 	chain := middleware.Chain(
-		// middleware.RateLimitMiddleware(tokenBucket),
 		middleware.Logging(logger),
 		middleware.Recovery(logger),
 	)
-	v1 := http.NewServeMux()
 
-	v1.Handle("/api/v1/", chain(http.StripPrefix("/api/v1", r)))
-	return v1
-}
+	finalRouter := http.NewServeMux()
 
-func setupHealthChecks(router *http.ServeMux, db *gorm.DB) {
-	router.HandleFunc("/live", livenessHandler)
-	router.HandleFunc("/ready", readinessHandler(db))
+	finalRouter.Handle("/metrics", promhttp.Handler())
+	finalRouter.HandleFunc("/live", livenessHandler)
+	finalRouter.HandleFunc("/ready", readinessHandler(db))
+
+	finalRouter.Handle("/api/v1/", chain(http.StripPrefix("/api/v1", businessRouter)))
+
+	return finalRouter
 }
 
 func livenessHandler(w http.ResponseWriter, r *http.Request) {

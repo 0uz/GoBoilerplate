@@ -117,7 +117,7 @@ The project includes a comprehensive monitoring stack:
 
 - **Grafana Dashboards**: http://localhost:3000 (admin/admin123)
 - **Prometheus Metrics**: http://localhost:9090
-- **Application Metrics**: http://localhost:8080/api/v1/metrics
+- **Application Metrics**: http://localhost:8080/metrics
 
 ## API Documentation
 

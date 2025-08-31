@@ -1,0 +1,15 @@
+meta {
+  name: Ready
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{localhost}}/ready
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

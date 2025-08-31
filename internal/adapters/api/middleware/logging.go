@@ -14,11 +14,6 @@ import (
 func Logging(logger *config.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/api/v1/metrics" {
-				next.ServeHTTP(w, r)
-				return
-			}
-
 			start := time.Now()
 			metrics.HTTPRequestsInFlight.Inc()
 			defer metrics.HTTPRequestsInFlight.Dec()
@@ -98,15 +93,9 @@ func sanitizeEndpoint(path string) string {
 	}
 
 	// Group similar endpoints
-	switch {
-	case path == "/":
+	switch path {
+	case "/":
 		return "/"
-	case path == "/live":
-		return "/live"
-	case path == "/ready":
-		return "/ready"
-	case path == "/metrics":
-		return "/metrics"
 	default:
 		// For API endpoints, group by base path
 		if len(path) > 8 && path[:8] == "/api/v1/" {
