@@ -21,6 +21,7 @@ func Logging(logger *config.Logger) Middleware {
 			wrapper := &responseWriter{ResponseWriter: w, status: http.StatusOK}
 			next.ServeHTTP(wrapper, r)
 			duration := time.Since(start)
+			
 
 			// Use full path for detailed monitoring
 			endpoint := r.URL.Path
