@@ -86,7 +86,6 @@ func TestPassword_Verify(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create a password for testing
 			if tt.want {
 				var err error
 				tt.p, err = user.NewPassword(tt.args.plaintext)

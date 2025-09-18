@@ -43,7 +43,6 @@ func Protected(authService auth.AuthService) Middleware {
 				return
 			}
 
-			// Add user to request context
 			ctx := context.WithValue(r.Context(), util.AuthenticatedUserKey, user)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

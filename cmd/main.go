@@ -53,7 +53,6 @@ func run() error {
 		}
 	}()
 
-	// Connect redis cache
 	redisClient, err := redisCache.ConnectRedis()
 	if err != nil {
 		return err
@@ -70,14 +69,12 @@ func run() error {
 	businessRouter := http.NewServeMux()
 	setupServiceAndRoutes(businessRouter, db, redisClient)
 
-	// Create final router with monitoring endpoints and V1 business routes
 	mainRouter := createFinalRouter(businessRouter, db, logger)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%s", config.Get().App.Port),
 		Handler: mainRouter,
 
-		// timeout
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,
 		IdleTimeout:       60 * time.Second,
@@ -96,7 +93,6 @@ func run() error {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
 
-	// Graceful shutdown
 	logger.Info("Server is shutting down...")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -110,7 +106,6 @@ func run() error {
 }
 
 func createFinalRouter(businessRouter *http.ServeMux, db *gorm.DB, logger *config.Logger) *http.ServeMux {
-	// Create middleware chain for business endpoints
 	chain := middleware.Chain(
 		middleware.Logging(logger),
 		middleware.Recovery(logger),

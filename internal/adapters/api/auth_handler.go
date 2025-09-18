@@ -62,7 +62,6 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.WithError(err).WithField("email", request.Email).Error("Failed to login user")
 
-		// Record failed login attempt
 		if errors.IsNotFoundError(err) || errors.IsUnauthorizedError(err) {
 			metrics.RecordAuthAttempt("login", "failed")
 		} else {
@@ -73,7 +72,6 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Record successful login
 	metrics.RecordAuthAttempt("login", "success")
 
 	response := authDto.TokenResponse{
@@ -95,7 +93,6 @@ func (h *AuthHandler) LoginAnonymousUser(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		h.logger.WithError(err).WithField("email", request.Email).Error("Failed to login anonymous user")
 
-		// Record failed anonymous login attempt
 		if errors.IsNotFoundError(err) {
 			metrics.RecordAuthAttempt("anonymous_login", "failed")
 		} else {
@@ -106,7 +103,6 @@ func (h *AuthHandler) LoginAnonymousUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Record successful anonymous login
 	metrics.RecordAuthAttempt("anonymous_login", "success")
 
 	response := authDto.TokenResponse{

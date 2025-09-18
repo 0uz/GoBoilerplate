@@ -116,7 +116,6 @@ func TestCredential_IsPasswordValid(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create a credential for testing
 			var err error
 			if tt.want {
 				tt.c, err = user.NewCredential(user.CredentialTypePassword, tt.args.password)

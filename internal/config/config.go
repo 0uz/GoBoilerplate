@@ -12,7 +12,6 @@ import (
 )
 
 const (
-	// Environment variable names
 	envPort                 = "PORT"
 	envV1Prefix             = "V1_PREFIX"
 	envPGHost               = "PG_DB_HOST"
@@ -243,12 +242,10 @@ func validate(c *Config) error {
 		return errors.ValidationError(fmt.Sprintf("JWT_SECRET must be at least %d characters long", minJWTSecretLength), nil)
 	}
 
-	// Validate cache size
 	if c.Cache.SizeMB < minCacheSizeMB || c.Cache.SizeMB > maxCacheSizeMB {
 		return errors.ValidationError(fmt.Sprintf("CACHE_SIZE_MB must be between %d and %d", minCacheSizeMB, maxCacheSizeMB), nil)
 	}
 
-	// Validate database connections
 	if c.Postgres.MaxOpenConns < minDBConnections || c.Postgres.MaxOpenConns > maxDBConnections {
 		return errors.ValidationError(fmt.Sprintf("PG_DB_MAX_OPEN_CONNS must be between %d and %d", minDBConnections, maxDBConnections), nil)
 	}

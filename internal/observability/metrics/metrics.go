@@ -5,7 +5,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-// HTTP metrics - middleware tarafından kullanılacak
 var (
 	HTTPRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
@@ -41,7 +40,6 @@ var (
 	)
 )
 
-// Application business metrics
 var (
 	AuthAttemptsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
@@ -74,7 +72,6 @@ var (
 	)
 )
 
-// Business logic helper functions
 func RecordAuthAttempt(authType, status string) {
 	AuthAttemptsTotal.WithLabelValues(authType, status).Inc()
 }
@@ -91,7 +88,6 @@ func RecordCacheOperation(operation, result, cacheType, cacheKey string) {
 	CacheOperationsTotal.WithLabelValues(operation, result, cacheType, cacheKey).Inc()
 }
 
-// Cache-specific helper functions with full cache key
 func RecordCacheHit(cacheType, cacheKey string) {
 	RecordCacheOperation("get", "hit", cacheType, cacheKey)
 }
@@ -108,7 +104,6 @@ func RecordCacheDelete(cacheType, cacheKey string) {
 	RecordCacheOperation("delete", "success", cacheType, cacheKey)
 }
 
-// Legacy functions for backward compatibility (deprecated)
 func RecordCacheHitLegacy(cacheType string) {
 	RecordCacheOperation("get", "hit", cacheType, "unknown")
 }

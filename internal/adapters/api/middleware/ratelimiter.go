@@ -16,14 +16,12 @@ const (
 	bucketExpiry    = 1 * time.Hour
 )
 
-// RateLimiter represents the rate limiting interface
 type RateLimiter interface {
 	Allow(key string) bool
 	AllowWithContext(ctx context.Context, key string) bool
 	Cleanup()
 }
 
-// TokenBucket represents a token bucket rate limiter
 type TokenBucket struct {
 	rate       float64
 	bucketSize float64
@@ -37,7 +35,6 @@ type bucket struct {
 	lastAccess time.Time
 }
 
-// NewTokenBucket creates a new token bucket rate limiter
 func NewTokenBucket(rate float64, bucketSize float64) *TokenBucket {
 	tb := &TokenBucket{
 		rate:       rate,
@@ -50,12 +47,10 @@ func NewTokenBucket(rate float64, bucketSize float64) *TokenBucket {
 	return tb
 }
 
-// Allow checks if a request should be allowed
 func (tb *TokenBucket) Allow(key string) bool {
 	return tb.AllowWithContext(context.Background(), key)
 }
 
-// AllowWithContext checks if a request should be allowed with context
 func (tb *TokenBucket) AllowWithContext(ctx context.Context, key string) bool {
 	select {
 	case <-ctx.Done():
@@ -75,7 +70,6 @@ func (tb *TokenBucket) AllowWithContext(ctx context.Context, key string) bool {
 			b = tb.tokens[key]
 		}
 
-		// Calculate tokens to add based on time passed
 		timePassed := now.Sub(b.lastAccess).Seconds()
 		tokensToAdd := timePassed * tb.rate
 
@@ -91,7 +85,6 @@ func (tb *TokenBucket) AllowWithContext(ctx context.Context, key string) bool {
 	}
 }
 
-// Cleanup removes expired buckets
 func (tb *TokenBucket) Cleanup() {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
@@ -104,7 +97,6 @@ func (tb *TokenBucket) Cleanup() {
 	}
 }
 
-// startCleanup starts the cleanup goroutine
 func (tb *TokenBucket) startCleanup() {
 	ticker := time.NewTicker(cleanupInterval)
 	defer ticker.Stop()
@@ -119,7 +111,6 @@ func (tb *TokenBucket) startCleanup() {
 	}
 }
 
-// Stop stops the cleanup goroutine
 func (tb *TokenBucket) Stop() {
 	close(tb.done)
 }

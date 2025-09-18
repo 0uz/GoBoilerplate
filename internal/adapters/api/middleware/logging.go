@@ -9,8 +9,6 @@ import (
 	"github.com/ouz/goauthboilerplate/internal/observability/metrics"
 )
 
-// HTTP metrics are now defined in the metrics package
-
 func Logging(logger *config.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -21,18 +19,15 @@ func Logging(logger *config.Logger) Middleware {
 			wrapper := &responseWriter{ResponseWriter: w, status: http.StatusOK}
 			next.ServeHTTP(wrapper, r)
 			duration := time.Since(start)
-			
 
-			// Use full path for detailed monitoring
+
 			endpoint := r.URL.Path
 			statusCode := strconv.Itoa(wrapper.status)
 
-			// Prometheus metrics
 			metrics.HTTPRequestsTotal.WithLabelValues(r.Method, endpoint, statusCode).Inc()
 			metrics.HTTPRequestDuration.WithLabelValues(r.Method, endpoint).Observe(duration.Seconds())
 			metrics.HTTPResponseSize.WithLabelValues(r.Method, endpoint).Observe(float64(wrapper.written))
 
-			// Create log entry with additional fields
 			entry := logger.WithFields(map[string]any{
 				"method":     r.Method,
 				"status":     wrapper.status,
@@ -44,7 +39,6 @@ func Logging(logger *config.Logger) Middleware {
 				"referer":    r.Referer(),
 			})
 
-			// Log based on status code
 			switch {
 			case wrapper.status >= 500:
 				entry.Error("Server error occurred")

@@ -48,7 +48,7 @@ func TestNewUserRole(t *testing.T) {
 				userID: "",
 				name:   user.UserRoleUser,
 			},
-			wantErr: false, // UserID validation is not implemented in domain
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

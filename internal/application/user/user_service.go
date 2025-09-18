@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	userCachePrefix = "user:%s" // userID
+	userCachePrefix = "user:%s"
 	userCacheTTL    = 5 * time.Minute
 )
 
@@ -140,7 +140,6 @@ func (s *userService) ConfirmUser(ctx context.Context, confirmation string) erro
 			return errors.InternalError("Failed to confirm user", err)
 		}
 
-		// Invalidate user cache after confirmation
 		cacheKey := fmt.Sprintf(userCachePrefix, userConfirmation.User.ID)
 		if err := s.redisCache.Evict(ctx, cacheKey, ""); err != nil {
 			s.logger.WithError(err).WithField("userID", userConfirmation.User.ID).Error("Failed to invalidate user cache")

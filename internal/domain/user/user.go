@@ -9,7 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// User represents the user aggregate root
 type User struct {
 	ID            string `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	Username      string
@@ -25,7 +24,6 @@ type User struct {
 	DeletedAt     gorm.DeletedAt
 }
 
-// NewUser creates a new regular user with validation
 func NewUser(username, password string, email vo.Email) (*User, error) {
 	if err := validateUsername(username); err != nil {
 		return nil, err
@@ -62,7 +60,6 @@ func NewUser(username, password string, email vo.Email) (*User, error) {
 	return user, nil
 }
 
-// validateUsername validates the username format
 func validateUsername(username string) error {
 	if username == "" {
 		return errors.ValidationError("Username cannot be empty", nil)
@@ -73,7 +70,6 @@ func validateUsername(username string) error {
 	return nil
 }
 
-// NewAnonymousUser creates a new anonymous user
 func NewAnonymousUser() (*User, error) {
 	now := time.Now()
 	userID := uuid.New().String()
@@ -96,7 +92,6 @@ func NewAnonymousUser() (*User, error) {
 	}, nil
 }
 
-// AddCredential adds a new credential to the user
 func (u *User) AddCredential(password string) error {
 	credential, err := NewCredential(CredentialTypePassword, password)
 	if err != nil {
@@ -108,7 +103,6 @@ func (u *User) AddCredential(password string) error {
 	return nil
 }
 
-// AddConfirmation adds a new confirmation to the user
 func (u *User) AddConfirmation() error {
 	confirmation := UserConfirmation{
 		ID:        uuid.New().String(),
@@ -120,7 +114,6 @@ func (u *User) AddConfirmation() error {
 	return nil
 }
 
-// IsPasswordValid checks if the provided password is valid
 func (u *User) IsPasswordValid(password string) bool {
 	for _, credential := range u.Credentials {
 		if credential.CredentialType == CredentialTypePassword && credential.IsPasswordValid(password) {
@@ -130,7 +123,6 @@ func (u *User) IsPasswordValid(password string) bool {
 	return false
 }
 
-// HasRole checks if the user has the specified role
 func (u *User) HasRole(role UserRoleName) bool {
 	for _, userRole := range u.Roles {
 		if userRole.Name == role {
@@ -140,7 +132,6 @@ func (u *User) HasRole(role UserRoleName) bool {
 	return false
 }
 
-// Confirm confirms the user's account
 func (u *User) Confirm() {
 	u.Verified = true
 	u.Enabled = true

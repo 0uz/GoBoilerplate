@@ -13,7 +13,6 @@ const (
 	CredentialTypePassword CredentialType = "PASSWORD"
 )
 
-// Credential represents a user's authentication credential
 type Credential struct {
 	ID             uint           `gorm:"primarykey"`
 	CredentialType CredentialType `gorm:"not null"`
@@ -25,7 +24,6 @@ type Credential struct {
 	DeletedAt      gorm.DeletedAt
 }
 
-// NewCredential creates a new credential with the given type and secret
 func NewCredential(credentialType CredentialType, secret string) (*Credential, error) {
 	if err := validateCredentialType(credentialType); err != nil {
 		return nil, err
@@ -45,7 +43,6 @@ func NewCredential(credentialType CredentialType, secret string) (*Credential, e
 	}, nil
 }
 
-// validateCredentialType validates if the credential type is supported
 func validateCredentialType(credType CredentialType) error {
 	switch credType {
 	case CredentialTypePassword:
@@ -55,7 +52,6 @@ func validateCredentialType(credType CredentialType) error {
 	}
 }
 
-// IsPasswordValid checks if the provided password matches the credential
 func (c *Credential) IsPasswordValid(password string) bool {
 	if c.CredentialType != CredentialTypePassword {
 		return false

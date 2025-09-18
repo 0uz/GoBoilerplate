@@ -17,19 +17,16 @@ const (
 	envAppEnvironment = "APP_ENV"
 	envProdValue      = "PROD"
 
-	// GormLogger defaults
 	defaultSlowThreshold = time.Second // 1 second
 	defaultSourceField   = "file"
 )
 
-// Logger is a singleton instance of the logger
 type Logger struct {
 	*logrus.Logger
 }
 
 var logger *Logger
 
-// NewLogger creates a new logger instance with JSON formatting and proper log levels
 func NewLogger() *Logger {
 	if logger != nil {
 		return logger
@@ -47,7 +44,6 @@ func NewLogger() *Logger {
 		},
 	})
 
-	// Set log level based on environment
 	if os.Getenv(envAppEnvironment) == envProdValue {
 		l.SetLevel(logrus.InfoLevel)
 	} else {
@@ -58,7 +54,6 @@ func NewLogger() *Logger {
 	return logger
 }
 
-// GormLogger implements GORM's logger interface
 type GormLogger struct {
 	SlowThreshold         time.Duration
 	SourceField           string
@@ -66,7 +61,6 @@ type GormLogger struct {
 	Debug                 bool
 }
 
-// NewGormLogger creates a new GORM logger instance
 func NewGormLogger() gormlogger.Interface {
 	return &GormLogger{
 		SlowThreshold:         defaultSlowThreshold,

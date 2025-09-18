@@ -14,7 +14,6 @@ func Recovery(logger *config.Logger) Middleware {
 				if err := recover(); err != nil {
 					stack := string(debug.Stack())
 
-					// Log entry oluştur
 					entry := logger.WithFields(map[string]any{
 						"error":  err,
 						"stack":  stack,

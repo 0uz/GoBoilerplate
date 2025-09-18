@@ -7,7 +7,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// UserRoleName represents the name of a user role
 type UserRoleName string
 
 const (
@@ -15,7 +14,6 @@ const (
 	UserRoleAnonymous UserRoleName = "ANONYMOUS"
 )
 
-// UserRole represents a role assigned to a user
 type UserRole struct {
 	UserID    string       `gorm:"primaryKey;type:uuid"`
 	Name      UserRoleName `gorm:"primaryKey"`
@@ -23,7 +21,6 @@ type UserRole struct {
 	DeletedAt gorm.DeletedAt
 }
 
-// NewUserRole creates a new user role with validation
 func NewUserRole(userID string, name UserRoleName) (*UserRole, error) {
 	if err := validateUserRole(name); err != nil {
 		return nil, err
@@ -36,7 +33,6 @@ func NewUserRole(userID string, name UserRoleName) (*UserRole, error) {
 	}, nil
 }
 
-// validateUserRole validates if the role name is supported
 func validateUserRole(name UserRoleName) error {
 	switch name {
 	case UserRoleUser, UserRoleAnonymous:

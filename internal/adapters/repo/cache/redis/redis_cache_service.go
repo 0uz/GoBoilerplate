@@ -135,7 +135,6 @@ func (r *redisCache) EvictByPrefix(ctx context.Context, prefix string) error {
 		if err != nil {
 			return errors.GenericError("error deleting keys from redis", err)
 		}
-		// Record one delete operation per key
 		for _, key := range keys {
 			metrics.RecordCacheDelete("redis", key)
 		}

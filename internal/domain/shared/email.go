@@ -25,7 +25,6 @@ func NewEmail(address string) (Email, error) {
 		return Email{}, errors.ValidationError("Invalid email address format", nil)
 	}
 
-	// Split email into local and domain parts
 	parts := strings.Split(address, "@")
 	if len(parts) != 2 {
 		return Email{}, errors.ValidationError("Invalid email address format", nil)
@@ -34,7 +33,6 @@ func NewEmail(address string) (Email, error) {
 	localPart := parts[0]
 	domainPart := parts[1]
 
-	// Additional validations
 	if len(localPart) > 64 {
 		return Email{}, errors.ValidationError("Local part of email cannot be longer than 64 characters", nil)
 	}
@@ -43,7 +41,6 @@ func NewEmail(address string) (Email, error) {
 		return Email{}, errors.ValidationError("Domain part of email cannot be longer than 255 characters", nil)
 	}
 
-	// Check for consecutive dots
 	if strings.Contains(address, "..") {
 		return Email{}, errors.ValidationError("Email address cannot contain consecutive dots", nil)
 	}
