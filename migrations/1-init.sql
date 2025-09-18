@@ -1,30 +1,29 @@
 SELECT 'CREATE DATABASE appdb'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'appdb')\gexec
-
-DO
-$do$
-BEGIN
-   IF NOT EXISTS (
-      SELECT FROM pg_catalog.pg_roles WHERE rolname = 'app'
-   ) THEN
-      CREATE ROLE app WITH LOGIN PASSWORD 'StrongPassword!';
-   END IF;
-END
-$do$;
-
-\c appdb
-
-CREATE SCHEMA IF NOT EXISTS app AUTHORIZATION app;
-
+WHERE NOT EXISTS (
+        SELECT
+        FROM pg_database
+        WHERE datname = 'appdb'
+    ) \ gexec DO $do$ BEGIN IF NOT EXISTS (
+        SELECT
+        FROM pg_catalog.pg_roles
+        WHERE rolname = 'app'
+    ) THEN CREATE ROLE app WITH LOGIN PASSWORD 'StrongPassword!';
+END IF;
+END $do$;
+\ c appdb CREATE SCHEMA IF NOT EXISTS app AUTHORIZATION app;
 GRANT CONNECT ON DATABASE appdb TO app;
 GRANT USAGE ON SCHEMA app TO app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA app TO app;
-
-ALTER DEFAULT PRIVILEGES IN SCHEMA app 
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app;
-
-ALTER ROLE app SET search_path TO app;
-
+GRANT SELECT,
+    INSERT,
+    UPDATE,
+    DELETE ON ALL TABLES IN SCHEMA app TO app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA app
+GRANT SELECT,
+    INSERT,
+    UPDATE,
+    DELETE ON TABLES TO app;
+ALTER ROLE app
+SET search_path TO app;
 -- Create tables and indexes
 CREATE TABLE IF NOT EXISTS app.users (
     id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -43,7 +42,6 @@ CREATE INDEX IF NOT EXISTS idx_users_username ON app.users USING btree (username
 CREATE INDEX IF NOT EXISTS idx_users_enabled ON app.users USING btree (enabled);
 CREATE INDEX IF NOT EXISTS idx_users_verified ON app.users USING btree (verified);
 CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON app.users USING btree (deleted_at);
-
 CREATE TABLE IF NOT EXISTS app.user_roles (
     user_id uuid NOT NULL,
     name text NOT NULL,
@@ -53,7 +51,6 @@ CREATE TABLE IF NOT EXISTS app.user_roles (
     CONSTRAINT user_roles_users_fk FOREIGN KEY (user_id) REFERENCES app.users(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_user_roles_deleted_at ON app.user_roles USING btree (deleted_at);
-
 CREATE TABLE IF NOT EXISTS app.credentials (
     id SERIAL PRIMARY KEY,
     user_id uuid NOT NULL,
@@ -66,7 +63,6 @@ CREATE TABLE IF NOT EXISTS app.credentials (
 );
 CREATE INDEX IF NOT EXISTS idx_credentials_deleted_at ON app.credentials USING btree (deleted_at);
 CREATE INDEX IF NOT EXISTS idx_credentials_user_id ON app.credentials USING btree (user_id);
-
 CREATE TABLE IF NOT EXISTS app.clients (
     client_type text NOT NULL,
     client_secret uuid NOT NULL,
@@ -77,7 +73,6 @@ CREATE TABLE IF NOT EXISTS app.clients (
 );
 CREATE INDEX IF NOT EXISTS idx_clients_deleted_at ON app.clients USING btree (deleted_at);
 CREATE INDEX IF NOT EXISTS idx_clients_client_secret ON app.clients USING btree (client_secret);
-
 CREATE TABLE IF NOT EXISTS app.user_confirmations (
     id uuid NOT NULL DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL,
@@ -89,10 +84,8 @@ CREATE TABLE IF NOT EXISTS app.user_confirmations (
 );
 CREATE INDEX IF NOT EXISTS idx_user_confirmations_deleted_at ON app.user_confirmations USING btree (deleted_at);
 CREATE INDEX IF NOT EXISTS idx_user_confirmations_user_id ON app.user_confirmations USING btree (user_id);
-
 -- Insert default clients with consistent client types
-INSERT INTO app.clients (client_type, client_secret, created_at) 
-VALUES 
-    ('web', gen_random_uuid(), CURRENT_TIMESTAMP),
+INSERT INTO app.clients (client_type, client_secret, created_at)
+VALUES ('web', gen_random_uuid(), CURRENT_TIMESTAMP),
     ('android', gen_random_uuid(), CURRENT_TIMESTAMP),
     ('ios', gen_random_uuid(), CURRENT_TIMESTAMP);

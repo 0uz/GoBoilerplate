@@ -57,15 +57,15 @@ scrape_configs:
           - name: name
             values: ["goauthboiler", "postgres", "valkey"]
     relabel_configs:
-      - source_labels: ['__meta_docker_container_name']
-        regex: '/(.*)'
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
         target_label: container
-      - source_labels: ['__meta_docker_container_log_stream']
+      - source_labels: ["__meta_docker_container_log_stream"]
         target_label: stream
-      - source_labels: ['__meta_docker_container_name']
+      - source_labels: ["__meta_docker_container_name"]
         target_label: job
-        regex: '/(.*)'
-        replacement: 'docker-${1}'
+        regex: "/(.*)"
+        replacement: "docker-${1}"
     pipeline_stages:
       - match:
           selector: '{container="goauthboiler"}'
@@ -94,7 +94,7 @@ scrape_configs:
                 level:
             - timestamp:
                 source: timestamp
-                format: '2006-01-02 15:04:05.000'
+                format: "2006-01-02 15:04:05.000"
 
   # System logs (if needed)
   - job_name: system-logs
@@ -112,4 +112,4 @@ scrape_configs:
           service:
       - timestamp:
           source: timestamp
-          format: 'Jan _2 15:04:05'
+          format: "Jan _2 15:04:05"

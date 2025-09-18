@@ -38,7 +38,7 @@ func (h *AuthHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request)
 
 	tokens, err := h.authService.RefreshAccessToken(r.Context(), request.RefreshToken)
 	if err != nil {
-		h.logger.WithError(err).Error("Failed to refresh access token")
+		h.logger.Error("Failed to refresh access token", "error", err)
 		resp.Error(w, err)
 		return
 	}
@@ -60,8 +60,7 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	tokens, err := h.authService.Login(r.Context(), request.Email, request.Password)
 	if err != nil {
-		h.logger.WithError(err).WithField("email", request.Email).Error("Failed to login user")
-
+		h.logger.Error("Failed to login user", "error", err, "email", request.Email)
 		if errors.IsNotFoundError(err) || errors.IsUnauthorizedError(err) {
 			metrics.RecordAuthAttempt("login", "failed")
 		} else {
@@ -91,8 +90,7 @@ func (h *AuthHandler) LoginAnonymousUser(w http.ResponseWriter, r *http.Request)
 
 	tokens, err := h.authService.LoginAnonymous(r.Context(), request.Email)
 	if err != nil {
-		h.logger.WithError(err).WithField("email", request.Email).Error("Failed to login anonymous user")
-
+		h.logger.Error("Failed to login anonymous user", "error", err, "email", request.Email)
 		if errors.IsNotFoundError(err) {
 			metrics.RecordAuthAttempt("anonymous_login", "failed")
 		} else {
@@ -121,7 +119,7 @@ func (h *AuthHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.authService.Logout(r.Context(), user.ID); err != nil {
-		h.logger.WithError(err).WithField("userID", user.ID).Error("Failed to logout user")
+		h.logger.Error("Failed to logout user", "error", err, "userID", user.ID)
 		resp.Error(w, err)
 		return
 	}
@@ -137,7 +135,7 @@ func (h *AuthHandler) LogoutAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.authService.LogoutAll(r.Context(), user.ID); err != nil {
-		h.logger.WithError(err).WithField("userID", user.ID).Error("Failed to logout all sessions")
+		h.logger.Error("Failed to logout all sessions", "error", err, "userID", user.ID)
 		resp.Error(w, err)
 		return
 	}

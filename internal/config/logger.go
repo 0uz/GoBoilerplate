@@ -3,11 +3,10 @@ package config
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"os"
 	"time"
 
-	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
 	"gorm.io/gorm/utils"
@@ -22,7 +21,7 @@ const (
 )
 
 type Logger struct {
-	*logrus.Logger
+	*slog.Logger
 }
 
 var logger *Logger
@@ -32,23 +31,23 @@ func NewLogger() *Logger {
 		return logger
 	}
 
-	l := logrus.New()
-
-	l.SetFormatter(&logrus.JSONFormatter{
-		TimestampFormat: time.RFC3339Nano,
-		FieldMap: logrus.FieldMap{
-			logrus.FieldKeyTime:  "time",
-			logrus.FieldKeyLevel: "level",
-			logrus.FieldKeyMsg:   "msg",
-			logrus.FieldKeyFunc:  "caller",
-		},
-	})
-
+	var level slog.Level
 	if os.Getenv(envAppEnvironment) == envProdValue {
-		l.SetLevel(logrus.InfoLevel)
+		level = slog.LevelInfo
 	} else {
-		l.SetLevel(logrus.DebugLevel)
+		level = slog.LevelDebug
 	}
+
+	l := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		AddSource: true,
+		Level:     level,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.SourceKey {
+				a.Key = "caller"
+			}
+			return a
+		},
+	}))
 
 	logger = &Logger{l}
 	return logger
@@ -75,36 +74,36 @@ func (l *GormLogger) LogMode(gormlogger.LogLevel) gormlogger.Interface {
 }
 
 func (l *GormLogger) Info(ctx context.Context, s string, args ...interface{}) {
-	logger.WithContext(ctx).Infof(s, args...)
+	logger.InfoContext(ctx, s, args...)
 }
 
 func (l *GormLogger) Warn(ctx context.Context, s string, args ...interface{}) {
-	logger.WithContext(ctx).Warnf(s, args...)
+	logger.WarnContext(ctx, s, args...)
 }
 
 func (l *GormLogger) Error(ctx context.Context, s string, args ...interface{}) {
-	logger.WithContext(ctx).Errorf(s, args...)
+	logger.ErrorContext(ctx, s, args...)
 }
 
 func (l *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
 	elapsed := time.Since(begin)
 	sql, _ := fc()
-	fields := log.Fields{}
+	var fields []interface{}
 	if l.SourceField != "" {
-		fields[l.SourceField] = utils.FileWithLineNum()
+		fields = append(fields, slog.String(l.SourceField, utils.FileWithLineNum()))
 	}
 	if err != nil && !(errors.Is(err, gorm.ErrRecordNotFound) && l.SkipErrRecordNotFound) {
-		fields[log.ErrorKey] = err
-		logger.WithContext(ctx).WithFields(fields).Errorf("%s [%s]", sql, elapsed)
+		fields = append(fields, slog.Any("error", err))
+		logger.ErrorContext(ctx, sql, fields...)
 		return
 	}
 
 	if l.SlowThreshold != 0 && elapsed > l.SlowThreshold {
-		logger.WithContext(ctx).WithFields(fields).Warnf("%s [%s]", sql, elapsed)
+		logger.WarnContext(ctx, sql, fields...)
 		return
 	}
 
 	if l.Debug {
-		logger.WithContext(ctx).WithFields(fields).Debugf("%s [%s]", sql, elapsed)
+		logger.DebugContext(ctx, sql, fields...)
 	}
 }

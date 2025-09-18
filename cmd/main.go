@@ -49,7 +49,7 @@ func run() error {
 
 	defer func() {
 		if err := postgres.CloseDatabaseConnection(db, logger); err != nil {
-			logger.WithError(err).Error("Failed to close database connection")
+			logger.Error("Failed to close database connection", "error", err)
 		}
 	}()
 
@@ -60,7 +60,7 @@ func run() error {
 
 	defer func() {
 		if err := redisClient.Close(); err != nil {
-			logger.WithError(err).Error("Failed to close Redis connection")
+			logger.Error("Failed to close Redis connection", "error", err)
 		}
 	}()
 

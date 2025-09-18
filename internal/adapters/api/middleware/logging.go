@@ -20,7 +20,6 @@ func Logging(logger *config.Logger) Middleware {
 			next.ServeHTTP(wrapper, r)
 			duration := time.Since(start)
 
-
 			endpoint := r.URL.Path
 			statusCode := strconv.Itoa(wrapper.status)
 
@@ -28,16 +27,16 @@ func Logging(logger *config.Logger) Middleware {
 			metrics.HTTPRequestDuration.WithLabelValues(r.Method, endpoint).Observe(duration.Seconds())
 			metrics.HTTPResponseSize.WithLabelValues(r.Method, endpoint).Observe(float64(wrapper.written))
 
-			entry := logger.WithFields(map[string]any{
-				"method":     r.Method,
-				"status":     wrapper.status,
-				"path":       r.URL.EscapedPath(),
-				"ip":         r.RemoteAddr,
-				"user_agent": r.UserAgent(),
-				"duration":   duration.String(),
-				"size":       wrapper.written,
-				"referer":    r.Referer(),
-			})
+			entry := logger.With(
+				"method", r.Method,
+				"status", wrapper.status,
+				"path", r.URL.EscapedPath(),
+				"ip", r.RemoteAddr,
+				"user_agent", r.UserAgent(),
+				"duration", duration.String(),
+				"size", wrapper.written,
+				"referer", r.Referer(),
+			)
 
 			switch {
 			case wrapper.status >= 500:
