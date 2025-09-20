@@ -34,6 +34,9 @@ const (
 	envMailUsername         = "MAIL_USERNAME"
 	envMailPassword         = "MAIL_PASSWORD"
 	envCacheSizeMB          = "CACHE_SIZE_MB"
+	envOtelServiceName      = "OTEL_SERVICE_NAME"
+	envOtelExporterEndpoint = "OTEL_EXPORTER_OTLP_ENDPOINT"
+	envAppEnv               = "APP_ENV"
 
 	// Default values
 	defaultPort                 = "8080"
@@ -44,6 +47,8 @@ const (
 	defaultPGConnMaxLifetimeMin = 5
 	defaultPGCloseTimeoutSec    = 5
 	defaultCacheSizeMB          = 100
+	defaultOtelServiceName      = "go-auth-boilerplate"
+	defaultOtelExporterEndpoint = "otel-collector:4317"
 
 	// Validation constants
 	minJWTSecretLength = 32
@@ -60,11 +65,18 @@ type Config struct {
 	JWT      JWTConfig
 	Mail     MailConfig
 	Cache    CacheConfig
+	Otel     OtelConfig
 }
 
 type AppConfig struct {
-	Port     string
-	V1Prefix string
+	Port        string
+	V1Prefix    string
+	Environment string
+}
+
+type OtelConfig struct {
+	ServiceName      string
+	ExporterEndpoint string
 }
 
 type PostgresDatabaseConfig struct {
@@ -160,8 +172,9 @@ func parseConfig() (*Config, error) {
 
 	return &Config{
 		App: AppConfig{
-			Port:     getEnvOrDefault(envPort, defaultPort),
-			V1Prefix: getEnvOrDefault(envV1Prefix, defaultV1Prefix),
+			Port:        getEnvOrDefault(envPort, defaultPort),
+			V1Prefix:    getEnvOrDefault(envV1Prefix, defaultV1Prefix),
+			Environment: getEnvOrDefault(envAppEnv, "DEV"),
 		},
 		Postgres: PostgresDatabaseConfig{
 			Host:                   os.Getenv(envPGHost),
@@ -193,6 +206,10 @@ func parseConfig() (*Config, error) {
 		Cache: CacheConfig{
 			SizeMB: cacheSizeMB,
 		},
+		Otel: OtelConfig{
+			ServiceName:      getEnvOrDefault(envOtelServiceName, defaultOtelServiceName),
+			ExporterEndpoint: getEnvOrDefault(envOtelExporterEndpoint, defaultOtelExporterEndpoint),
+		},
 	}, nil
 }
 
@@ -214,6 +231,8 @@ func validate(c *Config) error {
 		{c.Mail.Host, envMailHost},
 		{c.Mail.Username, envMailUsername},
 		{c.Mail.Password, envMailPassword},
+		{c.Otel.ServiceName, envOtelServiceName},
+		{c.Otel.ExporterEndpoint, envOtelExporterEndpoint},
 	}
 
 	for _, check := range checks {

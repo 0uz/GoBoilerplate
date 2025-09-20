@@ -1,44 +1,45 @@
-# Build stage
-FROM golang:1.25-alpine AS builder
-# Set the working directory
+# syntax=docker/dockerfile:1.4
+
+########### Build Stage ###########
+FROM golang:1.25 AS builder
+
 WORKDIR /app
 
-# Copy go mod and sum files
+# Go mod cache layer
 COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
-# Download all dependencies
-RUN go mod download
-
-# Copy the source code
+# Kaynak kodu kopyala
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/main.go
+# Statik binary derle
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -o app ./cmd/main.go
 
-# Final stage
-FROM alpine:latest  
 
-# Add necessary packages
+########### Final Stage ###########
+FROM alpine:latest
+
+# Gerekli paketler
 RUN apk add --no-cache curl
 
-# Create a non-root user
+# Non-root user oluştur
 RUN addgroup -S appgroup && \
     adduser -S appuser -G appgroup
 
-# Set the working directory
 WORKDIR /app
 
-# Copy the binary from builder
-COPY --from=builder /app/main .
-
-# Copy the .env file
+# Binary ve .env dosyasını kopyala
+COPY --from=builder /app/app .
 COPY .env .
 
-# Set ownership of the application files
+# Dosya sahipliğini ayarla
 RUN chown -R appuser:appgroup /app
 
-# Switch to non-root user
+# Non-root kullanıcıya geç
 USER appuser
 
-# Command to run the executable
-CMD ["./main"]
+# Çalıştırma komutu
+CMD ["./app"]

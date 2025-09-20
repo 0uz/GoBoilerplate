@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	emailConfirmationTemplatePath   = "internal/ports/api/template/email_confirmation_response.html"
-	notFoundTemplatePath            = "internal/ports/api/template/not_found.html"
+	emailConfirmationTemplatePath = "internal/ports/api/template/email_confirmation_response.html"
+	notFoundTemplatePath          = "internal/ports/api/template/not_found.html"
 )
 
 type UserHandler struct {
@@ -36,7 +36,7 @@ func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.userService.Register(r.Context(), request); err != nil {
-		h.logger.WithError(err).WithField("email", request.Email).Error("Failed to register user")
+		h.logger.Error("Failed to register user", "error", err, "email", request.Email)
 		resp.Error(w, err)
 		return
 	}
@@ -47,7 +47,7 @@ func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) RegisterAnonymousUser(w http.ResponseWriter, r *http.Request) {
 	user, err := h.userService.RegisterAnonymousUser(r.Context())
 	if err != nil {
-		h.logger.WithError(err).Error("Failed to register anonymous user")
+		h.logger.Error("Failed to register anonymous user", "error", err)
 		resp.Error(w, err)
 		return
 	}

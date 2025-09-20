@@ -3,11 +3,12 @@ package middleware
 import (
 	"net/http"
 
+	"slices"
+
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/response"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
-	"slices"
 )
 
 func HasRoles(requiredRoles ...user.UserRoleName) Middleware {

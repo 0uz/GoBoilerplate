@@ -77,9 +77,8 @@ func (s *authService) FindClientBySecretCached(ctx context.Context, clientSecret
 	}
 
 	if err := s.redisCache.Set(ctx, cacheKey, clientSecret, 1*time.Hour, clientFromDB); err != nil {
-		s.logger.WithError(err).Error("Failed to cache client")
+		s.logger.Error("Failed to cache client", "error", err)
 	}
-
 	return *clientFromDB, nil
 }
 

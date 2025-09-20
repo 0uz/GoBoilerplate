@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/ouz/goauthboilerplate/internal/config"
-	"github.com/ouz/goauthboilerplate/internal/observability/metrics"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -32,6 +32,13 @@ func ConnectRedis() (*redis.Client, error) {
 	}
 
 	client := redis.NewClient(opt)
+
+	if err := redisotel.InstrumentTracing(client); err != nil {
+		return nil, err
+	}
+	if err := redisotel.InstrumentMetrics(client); err != nil {
+		return nil, err
+	}
 
 	_, err = client.Ping(context.Background()).Result()
 	if err != nil {
@@ -76,7 +83,6 @@ func (r *redisCache) Set(ctx context.Context, prefix, key string, ttl time.Durat
 		return errors.GenericError("error setting value to redis", err)
 	}
 
-	metrics.RecordCacheSet("redis", fullKey)
 	return nil
 }
 
@@ -85,7 +91,6 @@ func (r *redisCache) Get(ctx context.Context, prefix, key string, result any) (b
 
 	cachedData, err := r.client.Get(ctx, fullKey).Bytes()
 	if err == redis.Nil {
-		metrics.RecordCacheMiss("redis", fullKey)
 		return false, nil
 	} else if err != nil {
 		return false, errors.GenericError("error getting value from redis", err)
@@ -95,7 +100,6 @@ func (r *redisCache) Get(ctx context.Context, prefix, key string, result any) (b
 		return false, errors.GenericError("error unmarshaling value", err)
 	}
 
-	metrics.RecordCacheHit("redis", fullKey)
 	return true, nil
 }
 
@@ -115,7 +119,6 @@ func (r *redisCache) Evict(ctx context.Context, prefix, key string) error {
 	if err != nil {
 		return errors.GenericError("error deleting key from redis", err)
 	}
-	metrics.RecordCacheDelete("redis", fullKey)
 	return nil
 }
 
@@ -134,9 +137,6 @@ func (r *redisCache) EvictByPrefix(ctx context.Context, prefix string) error {
 		err := r.client.Del(ctx, keys...).Err()
 		if err != nil {
 			return errors.GenericError("error deleting keys from redis", err)
-		}
-		for _, key := range keys {
-			metrics.RecordCacheDelete("redis", key)
 		}
 	}
 	return nil

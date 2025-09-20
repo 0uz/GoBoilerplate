@@ -46,20 +46,13 @@ func (c *cache) Set(prefix, key string, ttl time.Duration, value interface{}) {
 
 	jsonData, err := json.Marshal(value)
 	if err != nil {
-		c.logger.WithError(err).WithFields(map[string]any{
-			"prefix": prefix,
-			"key":    key,
-		}).Error("Failed to marshal cache value")
+		c.logger.Error("Failed to marshal cache value", "error", err, "prefix", prefix, "key", key)
 		return
 	}
 
 	if err := c.cache.Set([]byte(fullKey), jsonData, int(ttl.Seconds())); err != nil {
-		c.logger.WithError(err).WithFields(map[string]any{
-			"prefix": prefix,
-			"key":    key,
-		}).Error("Failed to set cache value")
+		c.logger.Error("Failed to set cache value", "error", err, "prefix", prefix, "key", key)
 	}
-
 	keyPrefixMu.Lock()
 	defer keyPrefixMu.Unlock()
 

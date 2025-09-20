@@ -10,7 +10,7 @@ services:
       pgdb:
         condition: service_healthy
     environment:
-      APP_ENV: PROD
+      APP_ENV: DEV
       DB_PORT: ${PORT}
       V1_PREFIX: ${V1_PREFIX}
       PG_DB_HOST: pgdb
@@ -27,14 +27,14 @@ services:
       MAIL_PORT: ${MAIL_PORT}
       MAIL_USERNAME: ${MAIL_USERNAME}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/ready"]
       interval: 1s
       timeout: 5s
       retries: 3
       start_period: 10s
-    volumes:
-      - ./logs:/var/log
     networks:
       - app-network
 

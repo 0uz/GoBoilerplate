@@ -11,12 +11,17 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/trace"
+
+	errs "errors"
 
 	"github.com/ouz/goauthboilerplate/internal/adapters/api"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/middleware"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/response"
 	redisCache "github.com/ouz/goauthboilerplate/internal/adapters/repo/cache/redis"
 	"github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres"
+	"github.com/ouz/goauthboilerplate/internal/observability"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
 
 	repoAuth "github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres/auth"
@@ -38,9 +43,14 @@ func main() {
 }
 
 func run() error {
+	ctx := context.Background()
+
 	if err := config.Load(logger); err != nil {
 		return err
 	}
+
+	config.ReinitializeLogger()
+	logger = config.NewLogger()
 
 	db, err := postgres.ConnectDB()
 	if err != nil {
@@ -49,7 +59,7 @@ func run() error {
 
 	defer func() {
 		if err := postgres.CloseDatabaseConnection(db, logger); err != nil {
-			logger.WithError(err).Error("Failed to close database connection")
+			logger.Error("Failed to close database connection", "error", err)
 		}
 	}()
 
@@ -60,8 +70,17 @@ func run() error {
 
 	defer func() {
 		if err := redisClient.Close(); err != nil {
-			logger.WithError(err).Error("Failed to close Redis connection")
+			logger.Error("Failed to close Redis connection", "error", err)
 		}
+	}()
+
+	otelShutdown, err := observability.SetupOTelSDK(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = errs.Join(err, otelShutdown(context.Background()))
 	}()
 
 	response.InitResponseLogger(logger)
@@ -71,9 +90,11 @@ func run() error {
 
 	mainRouter := createFinalRouter(businessRouter, db, logger)
 
+	mainRouterWithOTel := setupRouterWithTelemetry(mainRouter)
+
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%s", config.Get().App.Port),
-		Handler: mainRouter,
+		Handler: mainRouterWithOTel,
 
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,
@@ -103,6 +124,27 @@ func run() error {
 
 	logger.Info("Server stopped gracefully")
 	return nil
+}
+
+func setupRouterWithTelemetry(mainRouter *http.ServeMux) http.Handler {
+	skipPaths := map[string]bool{
+		"/":        true,
+		"/ready":   true,
+		"/health":  true,
+		"/ping":    true,
+		"/metrics": true,
+	}
+
+	filter := func(req *http.Request) bool {
+		return !skipPaths[req.URL.Path]
+	}
+
+	mainRouterWithOTel := otelhttp.NewHandler(mainRouter, "go-auth-boilerplate",
+		otelhttp.WithFilter(filter),
+		otelhttp.WithSpanOptions(trace.WithSpanKind(trace.SpanKindServer)),
+		otelhttp.WithPublicEndpoint(),
+	)
+	return mainRouterWithOTel
 }
 
 func createFinalRouter(businessRouter *http.ServeMux, db *gorm.DB, logger *config.Logger) *http.ServeMux {

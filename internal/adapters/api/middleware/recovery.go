@@ -14,19 +14,19 @@ func Recovery(logger *config.Logger) Middleware {
 				if err := recover(); err != nil {
 					stack := string(debug.Stack())
 
-					entry := logger.WithFields(map[string]any{
-						"error":  err,
-						"stack":  stack,
-						"path":   r.URL.EscapedPath(),
-						"method": r.Method,
-					})
+					entry := logger.With(
+						"error", err,
+						"stack", stack,
+						"path", r.URL.EscapedPath(),
+						"method", r.Method,
+					)
 
 					entry.Error("panic recovered")
 
 					w.WriteHeader(http.StatusInternalServerError)
 
 					if _, writeErr := w.Write([]byte("Internal Server Error")); writeErr != nil {
-						logger.WithError(writeErr).Error("Failed to write error response")
+						logger.Error("Failed to write error response", "error", writeErr)
 					}
 				}
 			}()

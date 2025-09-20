@@ -9,7 +9,6 @@ import (
 	"github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres"
 	authDto "github.com/ouz/goauthboilerplate/internal/application/auth/dto"
 	"github.com/ouz/goauthboilerplate/internal/config"
-	"github.com/sirupsen/logrus"
 
 	"github.com/ouz/goauthboilerplate/internal/domain/shared"
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
@@ -61,10 +60,7 @@ func (s *userService) Register(ctx context.Context, request authDto.UserRegister
 		return errors.InternalError("Failed to create user", err)
 	}
 
-	s.logger.WithFields(logrus.Fields{
-		"userID": user.ID,
-		"email":  user.Email,
-	}).Info("User registered successfully, verification email will be sent")
+	s.logger.Info("User registered successfully, verification email will be sent", "userID", user.ID, "email", user.Email)
 	// TODO: Send email to user
 	return nil
 }
@@ -79,7 +75,7 @@ func (s *userService) RegisterAnonymousUser(ctx context.Context) (*user.User, er
 		return nil, errors.InternalError("Failed to create anonymous user", err)
 	}
 
-	s.logger.WithField("user_id", user.ID).Info("Anonymous user registered successfully")
+	s.logger.Info("Anonymous user registered successfully", "user_id", user.ID)
 	return user, nil
 }
 
@@ -108,7 +104,7 @@ func (s *userService) FindUserWithRoles(ctx context.Context, id string, fromCach
 	if user != nil && fromCache {
 		cacheKey := fmt.Sprintf(userCachePrefix, id)
 		if err := s.redisCache.Set(ctx, cacheKey, "", userCacheTTL, user); err != nil {
-			s.logger.WithError(err).WithField("user_id", id).Error("Failed to cache user")
+			s.logger.Error("Failed to cache user", "error", err, "user_id", id)
 		}
 	}
 
@@ -142,9 +138,8 @@ func (s *userService) ConfirmUser(ctx context.Context, confirmation string) erro
 
 		cacheKey := fmt.Sprintf(userCachePrefix, userConfirmation.User.ID)
 		if err := s.redisCache.Evict(ctx, cacheKey, ""); err != nil {
-			s.logger.WithError(err).WithField("userID", userConfirmation.User.ID).Error("Failed to invalidate user cache")
+			s.logger.Error("Failed to invalidate user cache", "error", err, "userID", userConfirmation.User.ID)
 		}
-
 		return nil
 	})
 
@@ -152,6 +147,6 @@ func (s *userService) ConfirmUser(ctx context.Context, confirmation string) erro
 		return errors.InternalError("Failed to confirm user", err)
 	}
 
-	s.logger.WithField("userID", userConfirmation.User.ID).Info("User confirmed successfully")
+	s.logger.Info("User confirmed successfully", "userID", userConfirmation.User.ID)
 	return nil
 }

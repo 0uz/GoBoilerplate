@@ -1,0 +1,60 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  
+  redis:
+    endpoint: "valkey:6379"
+    collection_interval: 10s
+    
+  postgresql:
+    endpoint: "goauthboiler-postgres:5432"
+    username: app
+    password: "123456"
+    databases:
+      - appdb
+    tls:
+      insecure: true
+
+processors:
+  batch:
+
+exporters:
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    const_labels:
+      service: "go-boilerplate"
+  
+  otlp/tempo:
+    endpoint: http://tempo:4317
+    tls:
+      insecure: true
+  
+  otlphttp/logs:
+    endpoint: "http://loki:3100/otlp"
+    tls:
+      insecure: true
+      
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp, redis, postgresql]
+      processors: [batch]
+      exporters: [prometheus]
+    
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/tempo]
+    
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/logs]
+
+  telemetry:
+    logs:
+      level: "info"
