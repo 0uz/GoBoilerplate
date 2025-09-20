@@ -9,6 +9,7 @@ import (
 	"github.com/ouz/goauthboilerplate/internal/config"
 	"github.com/ouz/goauthboilerplate/internal/observability/metrics"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -32,6 +33,14 @@ func ConnectRedis() (*redis.Client, error) {
 	}
 
 	client := redis.NewClient(opt)
+
+	// Add OpenTelemetry instrumentation to Redis client
+	if err := redisotel.InstrumentTracing(client); err != nil {
+		return nil, err
+	}
+	if err := redisotel.InstrumentMetrics(client); err != nil {
+		return nil, err
+	}
 
 	_, err = client.Ping(context.Background()).Result()
 	if err != nil {
