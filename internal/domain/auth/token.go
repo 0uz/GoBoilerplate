@@ -79,7 +79,6 @@ func NewToken(userID string, tokenType TokenType, jwtSecret string, clientType C
 	}, nil
 }
 
-// Validate validates the token and returns its claims
 func ValidateToken(tokenString string, jwtSecret string) (*Token, error) {
 	if jwtSecret == "" {
 		return nil, errors.ValidationError("JWT secret cannot be empty", nil)

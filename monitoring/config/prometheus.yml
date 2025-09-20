@@ -2,8 +2,11 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-  # OTEL Collector metrics
   - job_name: 'otel-collector'
     static_configs:
       - targets: ['otel-collector:8889']
+    scrape_interval: 10s
+  - job_name: 'go-boilerplate'
+    static_configs:
+      - targets: ['goauthboiler:8080']
     scrape_interval: 10s
