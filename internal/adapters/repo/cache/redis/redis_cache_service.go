@@ -33,7 +33,6 @@ func ConnectRedis() (*redis.Client, error) {
 
 	client := redis.NewClient(opt)
 
-	// Add OpenTelemetry instrumentation to Redis client
 	if err := redisotel.InstrumentTracing(client); err != nil {
 		return nil, err
 	}

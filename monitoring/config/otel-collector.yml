@@ -5,6 +5,20 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
+  
+  redis:
+    endpoint: "valkey:6379"
+    collection_interval: 10s
+    password: ""
+    
+  postgresql:
+    endpoint: "goauthboiler-postgres:5432"
+    username: "app"
+    password: "123456"
+    databases:
+      - "appdb"
+    tls:
+      insecure: true
 
 processors:
   batch:
@@ -28,7 +42,7 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [otlp]
+      receivers: [otlp, redis, postgresql]
       processors: [batch]
       exporters: [prometheus]
     

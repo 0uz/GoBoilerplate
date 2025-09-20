@@ -10,6 +10,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/plugin/opentelemetry/tracing"
+	"gorm.io/plugin/opentelemetry/metrics"
 )
 
 func ConnectDB() (*gorm.DB, error) {
@@ -22,10 +23,10 @@ func ConnectDB() (*gorm.DB, error) {
 		return nil, errors.InternalError("Failed to connect to database", err)
 	}
 
-	// Add OpenTelemetry tracing plugin
 	if err := db.Use(tracing.NewPlugin()); err != nil {
 		return nil, errors.InternalError("Failed to add tracing plugin", err)
 	}
+
 
 	sqlDB, err := db.DB()
 	if err != nil {
