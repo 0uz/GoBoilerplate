@@ -8,8 +8,6 @@ receivers:
 
 processors:
   batch:
-    timeout: 1s
-    send_batch_size: 1024
 
 exporters:
   prometheus:
@@ -22,11 +20,11 @@ exporters:
     tls:
       insecure: true
   
-  otlphttp/loki:
-    endpoint: http://loki:3100/otlp
+  otlphttp/logs:
+    endpoint: "http://loki:3100/otlp"
     tls:
       insecure: true
-
+      
 service:
   pipelines:
     metrics:
@@ -39,11 +37,10 @@ service:
       processors: [batch]
       exporters: [otlp/tempo]
     
-    # Temporarily disable logs until we configure proper Loki integration
-    # logs:
-    #   receivers: [otlp]
-    #   processors: [batch]
-    #   exporters: [otlphttp/loki]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/logs]
 
   telemetry:
     logs:
