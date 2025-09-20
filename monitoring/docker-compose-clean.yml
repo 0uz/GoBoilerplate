@@ -1,13 +1,12 @@
 services:
-  # OTEL Collector - Metrics ve traces toplar
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.135.0
     container_name: otel-collector
     restart: unless-stopped
     ports:
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
-      - "8889:8889"   # Prometheus metrics scraping
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "8889:8889" # Prometheus metrics scraping
     volumes:
       - ./config/otel-collector.yml:/etc/otelcol-contrib/otel-collector-config.yml
     command: ["--config=/etc/otelcol-contrib/otel-collector-config.yml"]
@@ -15,7 +14,6 @@ services:
       - monitoring
       - app-network
 
-  # Prometheus - Metrics storage
   prometheus:
     image: prom/prometheus:v3.5.0
     container_name: prometheus
@@ -33,29 +31,27 @@ services:
     networks:
       - monitoring
 
-  # Tempo - Tracing storage
   tempo:
     image: grafana/tempo:2.8.2
     container_name: tempo
     restart: unless-stopped
     ports:
-      - "3200:3200"   # Tempo HTTP API
-      - "9095:9095"   # Query Frontend
-      - "7946:7946"   # Memberlist
+      - "3200:3200"
+      - "9095:9095"
+      - "7946:7946"
     volumes:
       - ./config/tempo.yml:/etc/tempo/tempo.yml
       - tempo-data:/var/tempo
-    command: [ "-config.file=/etc/tempo/tempo.yml" ]
+    command: ["-config.file=/etc/tempo/tempo.yml"]
     networks:
       - monitoring
 
-  # Loki - Log aggregation
   loki:
     image: grafana/loki:3.5.5
     container_name: loki
     restart: unless-stopped
     ports:
-      - "3100:3100"   # HTTP
+      - "3100:3100"
     volumes:
       - ./config/loki.yml:/etc/loki/local-config.yaml
       - loki-data:/loki
@@ -63,7 +59,6 @@ services:
     networks:
       - monitoring
 
-  # Grafana - Visualization
   grafana:
     image: grafana/grafana:12.1.0
     container_name: grafana

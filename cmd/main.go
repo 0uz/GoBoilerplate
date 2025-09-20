@@ -49,7 +49,6 @@ func run() error {
 		return err
 	}
 
-	// Reinitialize logger after config is loaded to use proper environment settings
 	config.ReinitializeLogger()
 	logger = config.NewLogger()
 
@@ -91,24 +90,7 @@ func run() error {
 
 	mainRouter := createFinalRouter(businessRouter, db, logger)
 
-	// Filter function to skip tracing for health check endpoints
-	skipPaths := map[string]bool{
-		"/":        true,
-		"/ready":   true,
-		"/health":  true,
-		"/ping":    true,
-		"/metrics": true,
-	}
-
-	filter := func(req *http.Request) bool {
-		return !skipPaths[req.URL.Path]
-	}
-
-	mainRouterWithOTel := otelhttp.NewHandler(mainRouter, "go-auth-boilerplate",
-		otelhttp.WithFilter(filter),
-		otelhttp.WithSpanOptions(trace.WithSpanKind(trace.SpanKindServer)),
-		otelhttp.WithPublicEndpoint(),
-	)
+	mainRouterWithOTel := setupRouterWithTelemetry(mainRouter)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%s", config.Get().App.Port),
@@ -142,6 +124,27 @@ func run() error {
 
 	logger.Info("Server stopped gracefully")
 	return nil
+}
+
+func setupRouterWithTelemetry(mainRouter *http.ServeMux) http.Handler {
+	skipPaths := map[string]bool{
+		"/":        true,
+		"/ready":   true,
+		"/health":  true,
+		"/ping":    true,
+		"/metrics": true,
+	}
+
+	filter := func(req *http.Request) bool {
+		return !skipPaths[req.URL.Path]
+	}
+
+	mainRouterWithOTel := otelhttp.NewHandler(mainRouter, "go-auth-boilerplate",
+		otelhttp.WithFilter(filter),
+		otelhttp.WithSpanOptions(trace.WithSpanKind(trace.SpanKindServer)),
+		otelhttp.WithPublicEndpoint(),
+	)
+	return mainRouterWithOTel
 }
 
 func createFinalRouter(businessRouter *http.ServeMux, db *gorm.DB, logger *config.Logger) *http.ServeMux {
