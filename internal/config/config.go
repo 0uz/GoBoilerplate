@@ -36,6 +36,7 @@ const (
 	envCacheSizeMB          = "CACHE_SIZE_MB"
 	envOtelServiceName      = "OTEL_SERVICE_NAME"
 	envOtelExporterEndpoint = "OTEL_EXPORTER_OTLP_ENDPOINT"
+	envAppEnv               = "APP_ENV"
 
 	// Default values
 	defaultPort                 = "8080"
@@ -68,8 +69,9 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Port     string
-	V1Prefix string
+	Port        string
+	V1Prefix    string
+	Environment string
 }
 
 type OtelConfig struct {
@@ -170,8 +172,9 @@ func parseConfig() (*Config, error) {
 
 	return &Config{
 		App: AppConfig{
-			Port:     getEnvOrDefault(envPort, defaultPort),
-			V1Prefix: getEnvOrDefault(envV1Prefix, defaultV1Prefix),
+			Port:        getEnvOrDefault(envPort, defaultPort),
+			V1Prefix:    getEnvOrDefault(envV1Prefix, defaultV1Prefix),
+			Environment: getEnvOrDefault(envAppEnv, "DEV"),
 		},
 		Postgres: PostgresDatabaseConfig{
 			Host:                   os.Getenv(envPGHost),

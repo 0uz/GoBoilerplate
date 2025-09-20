@@ -12,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
@@ -104,6 +105,9 @@ func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, er
 		log.WithResource(res),
 	)
 	shutdownFuncs = append(shutdownFuncs, logProvider.Shutdown)
+
+	// Set the global log provider
+	global.SetLoggerProvider(logProvider)
 
 	err = runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second))
 	if err != nil {

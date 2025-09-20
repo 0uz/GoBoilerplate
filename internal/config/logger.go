@@ -7,15 +7,14 @@ import (
 	"os"
 	"time"
 
+	"go.opentelemetry.io/contrib/bridges/otelslog"
+	"go.opentelemetry.io/otel/log/global"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
 	"gorm.io/gorm/utils"
 )
 
 const (
-	envAppEnvironment = "APP_ENV"
-	envProdValue      = "PROD"
-
 	defaultSlowThreshold = time.Second // 1 second
 	defaultSourceField   = "file"
 )
@@ -31,26 +30,41 @@ func NewLogger() *Logger {
 		return logger
 	}
 
-	var level slog.Level
-	if os.Getenv(envAppEnvironment) == envProdValue {
-		level = slog.LevelInfo
-	} else {
-		level = slog.LevelDebug
+	env := "PROD"
+
+	if cfg := Get(); cfg != nil {
+		env = cfg.App.Environment
 	}
 
-	l := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		AddSource: true,
-		Level:     level,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			if a.Key == slog.SourceKey {
-				a.Key = "caller"
-			}
-			return a
-		},
-	}))
+	var l *slog.Logger
+
+	if env == "DEV" {
+		stdoutHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		})
+
+		otelHandler := otelslog.NewHandler("go-boilerplate",
+			otelslog.WithLoggerProvider(global.GetLoggerProvider()),
+		)
+
+		multiHandler := &MultiHandler{
+			handlers: []slog.Handler{stdoutHandler, otelHandler},
+		}
+
+		l = slog.New(multiHandler)
+	} else {
+		l = slog.New(otelslog.NewHandler("go-boilerplate",
+			otelslog.WithLoggerProvider(global.GetLoggerProvider()),
+		))
+	}
 
 	logger = &Logger{l}
 	return logger
+}
+
+func ReinitializeLogger() {
+	logger = nil
+	NewLogger()
 }
 
 type GormLogger struct {
@@ -106,4 +120,44 @@ func (l *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (stri
 	if l.Debug {
 		logger.DebugContext(ctx, sql, fields...)
 	}
+}
+
+type MultiHandler struct {
+	handlers []slog.Handler
+}
+
+func (h *MultiHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	for _, handler := range h.handlers {
+		if handler.Enabled(ctx, level) {
+			return true
+		}
+	}
+	return false
+}
+
+func (h *MultiHandler) Handle(ctx context.Context, r slog.Record) error {
+	for _, handler := range h.handlers {
+		if handler.Enabled(ctx, r.Level) {
+			if err := handler.Handle(ctx, r.Clone()); err != nil {
+				continue
+			}
+		}
+	}
+	return nil
+}
+
+func (h *MultiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	newHandlers := make([]slog.Handler, len(h.handlers))
+	for i, handler := range h.handlers {
+		newHandlers[i] = handler.WithAttrs(attrs)
+	}
+	return &MultiHandler{handlers: newHandlers}
+}
+
+func (h *MultiHandler) WithGroup(name string) slog.Handler {
+	newHandlers := make([]slog.Handler, len(h.handlers))
+	for i, handler := range h.handlers {
+		newHandlers[i] = handler.WithGroup(name)
+	}
+	return &MultiHandler{handlers: newHandlers}
 }

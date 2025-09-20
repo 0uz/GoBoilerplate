@@ -10,7 +10,7 @@ services:
       pgdb:
         condition: service_healthy
     environment:
-      APP_ENV: PROD
+      APP_ENV: DEV
       DB_PORT: ${PORT}
       V1_PREFIX: ${V1_PREFIX}
       PG_DB_HOST: pgdb
