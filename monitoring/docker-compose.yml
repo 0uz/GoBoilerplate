@@ -3,6 +3,12 @@ services:
     image: otel/opentelemetry-collector-contrib:0.135.0
     container_name: otel-collector
     restart: unless-stopped
+    environment:
+      - PG_MONITOR_USER=${PG_DB_USER:-app}
+      - PG_MONITOR_PASSWORD=${PG_DB_PASSWORD}
+      - PG_DB_NAME=${PG_DB_NAME:-appdb}
+      - VALKEY_PASSWORD=${VALKEY_PASSWORD:-""}
+      - PG_TLS_INSECURE=${PG_TLS_INSECURE:-true}
     ports:
       - "4317:4317" # OTLP gRPC
       - "4318:4318" # OTLP HTTP

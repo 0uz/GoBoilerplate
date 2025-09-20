@@ -10,7 +10,6 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/plugin/opentelemetry/tracing"
-	"gorm.io/plugin/opentelemetry/metrics"
 )
 
 func ConnectDB() (*gorm.DB, error) {
