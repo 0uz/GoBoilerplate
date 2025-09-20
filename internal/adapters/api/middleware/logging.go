@@ -2,30 +2,19 @@ package middleware
 
 import (
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/ouz/goauthboilerplate/internal/config"
-	"github.com/ouz/goauthboilerplate/internal/observability/metrics"
 )
 
 func Logging(logger *config.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-			metrics.HTTPRequestsInFlight.Inc()
-			defer metrics.HTTPRequestsInFlight.Dec()
 
 			wrapper := &responseWriter{ResponseWriter: w, status: http.StatusOK}
 			next.ServeHTTP(wrapper, r)
 			duration := time.Since(start)
-
-			endpoint := r.URL.Path
-			statusCode := strconv.Itoa(wrapper.status)
-
-			metrics.HTTPRequestsTotal.WithLabelValues(r.Method, endpoint, statusCode).Inc()
-			metrics.HTTPRequestDuration.WithLabelValues(r.Method, endpoint).Observe(duration.Seconds())
-			metrics.HTTPResponseSize.WithLabelValues(r.Method, endpoint).Observe(float64(wrapper.written))
 
 			entry := logger.With(
 				"method", r.Method,

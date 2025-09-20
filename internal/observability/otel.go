@@ -21,14 +21,9 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 )
 
-// setupOTelSDK bootstraps the OpenTelemetry pipeline.
-// If it does not return an error, make sure to call shutdown for proper cleanup.
 func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, err error) {
 	var shutdownFuncs []func(context.Context) error
 
-	// shutdown calls cleanup functions registered via shutdownFuncs.
-	// The errors from the calls are joined.
-	// Each registered cleanup will be invoked once.
 	shutdown = func(ctx context.Context) error {
 		var err error
 		for _, fn := range shutdownFuncs {
@@ -38,12 +33,10 @@ func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, er
 		return err
 	}
 
-	// handleErr calls shutdown for cleanup and makes sure that all errors are returned.
 	handleErr := func(inErr error) {
 		err = errors.Join(inErr, shutdown(ctx))
 	}
 
-	// Create resource with service information
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
 			semconv.ServiceName("go-auth-boilerplate"),
@@ -93,7 +86,6 @@ func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, er
 	shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
 	otel.SetMeterProvider(meterProvider)
 
-	// Setup log provider
 	logExporter, err := otlploghttp.New(ctx)
 	if err != nil {
 		handleErr(err)
@@ -106,7 +98,6 @@ func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, er
 	)
 	shutdownFuncs = append(shutdownFuncs, logProvider.Shutdown)
 
-	// Set the global log provider
 	global.SetLoggerProvider(logProvider)
 
 	err = runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second))

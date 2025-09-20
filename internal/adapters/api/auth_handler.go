@@ -8,7 +8,6 @@ import (
 	authDto "github.com/ouz/goauthboilerplate/internal/application/auth/dto"
 	"github.com/ouz/goauthboilerplate/internal/config"
 	authService "github.com/ouz/goauthboilerplate/internal/domain/auth"
-	"github.com/ouz/goauthboilerplate/internal/observability/metrics"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
 )
 
@@ -61,17 +60,9 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	tokens, err := h.authService.Login(r.Context(), request.Email, request.Password)
 	if err != nil {
 		h.logger.Error("Failed to login user", "error", err, "email", request.Email)
-		if errors.IsNotFoundError(err) || errors.IsUnauthorizedError(err) {
-			metrics.RecordAuthAttempt("login", "failed")
-		} else {
-			metrics.RecordAuthAttempt("login", "error")
-		}
-
 		resp.Error(w, err)
 		return
 	}
-
-	metrics.RecordAuthAttempt("login", "success")
 
 	response := authDto.TokenResponse{
 		AccessToken:  tokens.AccessToken.RawToken,
@@ -91,17 +82,9 @@ func (h *AuthHandler) LoginAnonymousUser(w http.ResponseWriter, r *http.Request)
 	tokens, err := h.authService.LoginAnonymous(r.Context(), request.Email)
 	if err != nil {
 		h.logger.Error("Failed to login anonymous user", "error", err, "email", request.Email)
-		if errors.IsNotFoundError(err) {
-			metrics.RecordAuthAttempt("anonymous_login", "failed")
-		} else {
-			metrics.RecordAuthAttempt("anonymous_login", "error")
-		}
-
 		resp.Error(w, err)
 		return
 	}
-
-	metrics.RecordAuthAttempt("anonymous_login", "success")
 
 	response := authDto.TokenResponse{
 		AccessToken:  tokens.AccessToken.RawToken,
