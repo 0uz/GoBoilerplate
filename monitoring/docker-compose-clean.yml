@@ -17,7 +17,7 @@ services:
 
   # Prometheus - Metrics storage
   prometheus:
-    image: prom/prometheus:v3.1.0
+    image: prom/prometheus:v3.5.0
     container_name: prometheus
     restart: unless-stopped
     ports:
@@ -49,9 +49,23 @@ services:
     networks:
       - monitoring
 
+  # Loki - Log aggregation
+  loki:
+    image: grafana/loki:3.5.5
+    container_name: loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"   # HTTP
+    volumes:
+      - ./config/loki.yml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring
+
   # Grafana - Visualization
   grafana:
-    image: grafana/grafana:12.1.1
+    image: grafana/grafana:12.1.0
     container_name: grafana
     restart: unless-stopped
     ports:
@@ -68,6 +82,7 @@ services:
     depends_on:
       - prometheus
       - tempo
+      - loki
 
 networks:
   monitoring:
@@ -80,3 +95,4 @@ volumes:
   prometheus-data:
   grafana-data:
   tempo-data:
+  loki-data:

@@ -76,6 +76,9 @@ func run() error {
 		return err
 	}
 
+	// Setup OTEL slog bridge
+	_ = observability.SetupOTelSlog()
+
 	defer func() {
 		err = errs.Join(err, otelShutdown(context.Background()))
 	}()
