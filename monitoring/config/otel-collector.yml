@@ -9,16 +9,15 @@ receivers:
   redis:
     endpoint: "valkey:6379"
     collection_interval: 10s
-    password: ${VALKEY_PASSWORD:-""}
     
   postgresql:
     endpoint: "goauthboiler-postgres:5432"
-    username: ${PG_MONITOR_USER:-"app"}
-    password: ${PG_MONITOR_PASSWORD}
+    username: app
+    password: "123456"
     databases:
-      - ${PG_DB_NAME:-"appdb"}
+      - appdb
     tls:
-      insecure: ${PG_TLS_INSECURE:-true}
+      insecure: true
 
 processors:
   batch:
