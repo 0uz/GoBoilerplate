@@ -35,8 +35,8 @@ func SetUpAuthRoutes(mainRouter *http.ServeMux, authHandler *AuthHandler, userHa
 func SetUpUserRoutes(mainRouter *http.ServeMux, userHandler *UserHandler, userAuthService auth.AuthService) {
 	// Public routes
 	userRouter := http.NewServeMux()
-	userRouter.HandleFunc("GET email/confirm", userHandler.ConfirmUser)
-	userRouter.HandleFunc("GET email/confirm/resend", userHandler.ConfirmUser)
+	userRouter.HandleFunc("GET /email/confirm", userHandler.ConfirmUser)
+	userRouter.HandleFunc("GET /mail/confirm/resend", userHandler.ConfirmUser)
 
 	protectedUser := middleware.Chain(
 		middleware.HasClientSecret(userAuthService),

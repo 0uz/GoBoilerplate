@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	emailConfirmationTemplatePath = "internal/ports/api/template/email_confirmation_response.html"
-	notFoundTemplatePath          = "internal/ports/api/template/not_found.html"
+	emailConfirmationTemplatePath = "internal/adapters/api/template/email_confirmation_response.html"
+	notFoundTemplatePath          = "internal/adapters/api/template/not_found.html"
 )
 
 type UserHandler struct {
