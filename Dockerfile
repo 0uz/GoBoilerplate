@@ -35,6 +35,9 @@ WORKDIR /app
 COPY --from=builder /app/app .
 COPY .env .
 
+# Template dosyalarını kopyala
+COPY --from=builder /app/internal/adapters/api/template/ ./internal/adapters/api/template/
+
 # Dosya sahipliğini ayarla
 RUN chown -R appuser:appgroup /app
 

@@ -16,6 +16,13 @@ const (
 	REFRESH_TOKEN TokenType = "REFRESH_TOKEN"
 )
 
+type TokenClaims struct {
+	jwt.RegisteredClaims
+	UserId     string     `json:"uid"`
+	ClientType ClientType `json:"clientType"`
+	TokenType  TokenType  `json:"tokenType"`
+}
+
 type Token struct {
 	jwt.RegisteredClaims
 	UserId     string     `json:"uid"`
@@ -57,12 +64,14 @@ func NewToken(userID string, tokenType TokenType, jwtSecret string, clientType C
 	now := time.Now()
 	expiresAt := now.Add(expiration)
 
-	claims := Token{
+	claims := TokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			ID:        jti,
 		},
-		UserId: userID,
+		UserId:     userID,
+		TokenType:  tokenType,
+		ClientType: clientType,
 	}
 
 	tokenString, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(jwtSecret))
@@ -84,7 +93,7 @@ func ValidateToken(tokenString string, jwtSecret string) (*Token, error) {
 		return nil, errors.ValidationError("JWT secret cannot be empty", nil)
 	}
 
-	token, err := jwt.ParseWithClaims(tokenString, &Token{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.UnauthorizedError("Invalid token signing method", nil)
 		}
@@ -95,12 +104,18 @@ func ValidateToken(tokenString string, jwtSecret string) (*Token, error) {
 		return nil, errors.UnauthorizedError("Invalid token", err)
 	}
 
-	claims, ok := token.Claims.(*Token)
+	claims, ok := token.Claims.(*TokenClaims)
 	if !ok {
 		return nil, errors.UnauthorizedError("Invalid token claims", nil)
 	}
 
-	return claims, nil
+	return &Token{
+		RegisteredClaims: claims.RegisteredClaims,
+		UserId:           claims.UserId,
+		RawToken:         tokenString,
+		ClientType:       claims.ClientType,
+		TokenType:        claims.TokenType,
+	}, nil
 }
 
 func (t *Token) IsExpired() bool {
@@ -130,12 +145,4 @@ func GeneratePrefix(tokenType TokenType, userID string, clientType ClientType) s
 	}
 
 	return fmt.Sprintf("%s:%s:%s", prefix, userID, string(clientType))
-}
-
-func (t *Token) SetClient(client Client) {
-	t.ClientType = client.ClientType
-}
-
-func (t *Token) SetTokenType(tokenType TokenType) {
-	t.TokenType = tokenType
 }

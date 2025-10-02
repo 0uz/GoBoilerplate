@@ -83,8 +83,9 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp.JSON(w, http.StatusOK, userDto.UserResponse{
-		ID:    user.ID,
-		Email: user.Email,
+		ID:        user.ID,
+		Email:     user.Email,
+		Anonymous: user.Anonymous,
 	})
 }
 

@@ -38,12 +38,12 @@ func SetUpUserRoutes(mainRouter *http.ServeMux, userHandler *UserHandler, userAu
 	userRouter.HandleFunc("GET /email/confirm", userHandler.ConfirmUser)
 	userRouter.HandleFunc("GET /mail/confirm/resend", userHandler.ConfirmUser)
 
-	protectedUser := middleware.Chain(
+	protected := middleware.Chain(
 		middleware.HasClientSecret(userAuthService),
 		middleware.Protected(userAuthService),
-		middleware.HasRoles(user.UserRoleUser),
+		middleware.HasRoles(user.UserRoleUser, user.UserRoleAnonymous),
 	)
-	userRouter.Handle("GET /me", protectedUser(http.HandlerFunc(userHandler.GetUser)))
+	userRouter.Handle("GET /me", protected(http.HandlerFunc(userHandler.GetUser)))
 
 	mainRouter.Handle("/users/", http.StripPrefix("/users", userRouter)) // Prefix all user routes with /user
 }

@@ -111,18 +111,11 @@ func (s *authService) RevokeAllTokens(ctx context.Context, userID string) error 
 }
 
 func (s *authService) RefreshAccessToken(ctx context.Context, refreshToken string) (auth.TokenPair, error) {
-	client, err := util.GetClient(ctx)
-	if err != nil {
-		return auth.TokenPair{}, err
-	}
-
 	claims, err := auth.ValidateToken(refreshToken, config.Get().JWT.Secret)
 	if err != nil {
 		return auth.TokenPair{}, err
 	}
 
-	claims.SetClient(client)
-	claims.SetTokenType(auth.ACCESS_TOKEN)
 	revoked, err := s.IsTokenRevoked(ctx, claims)
 	if err != nil {
 		return auth.TokenPair{}, errors.InternalError("Failed to check if token is revoked", err)
@@ -195,14 +188,6 @@ func (s *authService) ValidateTokenAndGetUser(ctx context.Context, token string)
 	if err != nil {
 		return user.User{}, err
 	}
-
-	client, err := util.GetClient(ctx)
-	if err != nil {
-		return user.User{}, err
-	}
-
-	claims.SetClient(client)
-	claims.SetTokenType(auth.ACCESS_TOKEN)
 
 	revoked, err := s.IsTokenRevoked(ctx, claims)
 	if err != nil {
