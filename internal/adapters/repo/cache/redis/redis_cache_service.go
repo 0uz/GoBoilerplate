@@ -25,7 +25,7 @@ type redisCache struct {
 	client *redis.Client
 }
 
-func ConnectRedis() (*redis.Client, error) {
+func ConnectRedis(logger *config.Logger) (*redis.Client, error) {
 	opt, err := redis.ParseURL(prepareURL())
 	if err != nil {
 		return nil, err
@@ -33,11 +33,14 @@ func ConnectRedis() (*redis.Client, error) {
 
 	client := redis.NewClient(opt)
 
-	if err := redisotel.InstrumentTracing(client); err != nil {
-		return nil, err
-	}
-	if err := redisotel.InstrumentMetrics(client); err != nil {
-		return nil, err
+	cfg := config.Get()
+	if cfg.Otel.MonitoringEnabled {
+		if err := redisotel.InstrumentTracing(client); err != nil {
+			logger.Warn("Failed to instrument Redis tracing", "error", err)
+		}
+		if err := redisotel.InstrumentMetrics(client); err != nil {
+			logger.Warn("Failed to instrument Redis metrics", "error", err)
+		}
 	}
 
 	_, err = client.Ping(context.Background()).Result()

@@ -12,7 +12,7 @@ import (
 	"gorm.io/plugin/opentelemetry/tracing"
 )
 
-func ConnectDB() (*gorm.DB, error) {
+func ConnectDB(logger *config.Logger) (*gorm.DB, error) {
 	conf := config.Get().Postgres
 	db, err := gorm.Open(postgres.Open(prepareDSN()), &gorm.Config{
 		Logger: config.NewGormLogger(),
@@ -22,10 +22,12 @@ func ConnectDB() (*gorm.DB, error) {
 		return nil, errors.InternalError("Failed to connect to database", err)
 	}
 
-	if err := db.Use(tracing.NewPlugin()); err != nil {
-		return nil, errors.InternalError("Failed to add tracing plugin", err)
+	cfg := config.Get()
+	if cfg.Otel.MonitoringEnabled {
+		if err := db.Use(tracing.NewPlugin()); err != nil {
+			logger.Warn("Failed to add database tracing plugin", "error", err)
+		}
 	}
-
 
 	sqlDB, err := db.DB()
 	if err != nil {

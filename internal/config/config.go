@@ -36,6 +36,7 @@ const (
 	envCacheSizeMB          = "CACHE_SIZE_MB"
 	envOtelServiceName      = "OTEL_SERVICE_NAME"
 	envOtelExporterEndpoint = "OTEL_EXPORTER_OTLP_ENDPOINT"
+	envMonitoringEnabled    = "MONITORING_ENABLED"
 	envAppEnv               = "APP_ENV"
 
 	// Default values
@@ -49,6 +50,7 @@ const (
 	defaultCacheSizeMB          = 100
 	defaultOtelServiceName      = "go-auth-boilerplate"
 	defaultOtelExporterEndpoint = "otel-collector:4317"
+	defaultMonitoringEnabled    = "false"
 
 	// Validation constants
 	minJWTSecretLength = 32
@@ -75,8 +77,9 @@ type AppConfig struct {
 }
 
 type OtelConfig struct {
-	ServiceName      string
-	ExporterEndpoint string
+	ServiceName       string
+	ExporterEndpoint  string
+	MonitoringEnabled bool
 }
 
 type PostgresDatabaseConfig struct {
@@ -207,8 +210,9 @@ func parseConfig() (*Config, error) {
 			SizeMB: cacheSizeMB,
 		},
 		Otel: OtelConfig{
-			ServiceName:      getEnvOrDefault(envOtelServiceName, defaultOtelServiceName),
-			ExporterEndpoint: getEnvOrDefault(envOtelExporterEndpoint, defaultOtelExporterEndpoint),
+			ServiceName:       getEnvOrDefault(envOtelServiceName, defaultOtelServiceName),
+			ExporterEndpoint:  getEnvOrDefault(envOtelExporterEndpoint, defaultOtelExporterEndpoint),
+			MonitoringEnabled: getBoolEnvOrDefault(envMonitoringEnabled, defaultMonitoringEnabled),
 		},
 	}, nil
 }
@@ -282,4 +286,19 @@ func getEnvOrDefault(key, defaultValue string) string {
 		return defaultValue
 	}
 	return value
+}
+
+func getBoolEnvOrDefault(key, defaultValue string) bool {
+	value := os.Getenv(key)
+	if value == "" {
+		value = defaultValue
+	}
+
+	boolValue, err := strconv.ParseBool(value)
+	if err != nil {
+		// If parsing fails, use default value
+		defaultBool, _ := strconv.ParseBool(defaultValue)
+		return defaultBool
+	}
+	return boolValue
 }

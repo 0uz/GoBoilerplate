@@ -52,7 +52,7 @@ func run() error {
 	config.ReinitializeLogger()
 	logger = config.NewLogger()
 
-	db, err := postgres.ConnectDB()
+	db, err := postgres.ConnectDB(logger)
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func run() error {
 		}
 	}()
 
-	redisClient, err := redisCache.ConnectRedis()
+	redisClient, err := redisCache.ConnectRedis(logger)
 	if err != nil {
 		return err
 	}
@@ -74,9 +74,10 @@ func run() error {
 		}
 	}()
 
-	otelShutdown, err := observability.SetupOTelSDK(ctx)
+	otelShutdown, err := observability.SetupOTelSDK(ctx, logger)
 	if err != nil {
-		return err
+		logger.Warn("Failed to setup OpenTelemetry, continuing without monitoring", "error", err)
+		otelShutdown = func(_ context.Context) error { return nil }
 	}
 
 	defer func() {
