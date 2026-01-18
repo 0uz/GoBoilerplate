@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ouz/goauthboilerplate/internal/adapters/repo/cache/redis"
+	"github.com/ouz/goauthboilerplate/pkg/cache"
 	"github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres"
 	authDto "github.com/ouz/goauthboilerplate/internal/application/auth/dto"
-	"github.com/ouz/goauthboilerplate/internal/config"
 
 	"github.com/ouz/goauthboilerplate/internal/domain/shared"
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/ouz/goauthboilerplate/pkg/log"
 )
 
 const (
@@ -22,12 +22,12 @@ const (
 
 type userService struct {
 	userRepository user.UserRepository
-	redisCache     redis.RedisCacheService
+	redisCache     cache.RedisCacheService
 	tx             postgres.TransactionManager
-	logger         *config.Logger
+	logger         *log.Logger
 }
 
-func NewUserService(logger *config.Logger, ur user.UserRepository, rc redis.RedisCacheService, tx postgres.TransactionManager) user.UserService {
+func NewUserService(logger *log.Logger, ur user.UserRepository, rc cache.RedisCacheService, tx postgres.TransactionManager) user.UserService {
 	return &userService{
 		userRepository: ur,
 		redisCache:     rc,

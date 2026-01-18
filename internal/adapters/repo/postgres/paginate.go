@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func Paginate[T any](value interface{}, pagination *shared.Pagination[T], db *gorm.DB) func(db *gorm.DB) *gorm.DB {
+func Paginate[T any](value any, pagination *shared.Pagination[T], db *gorm.DB) func(db *gorm.DB) *gorm.DB {
 	var totalRows int64
 	db.Model(value).Count(&totalRows)
 

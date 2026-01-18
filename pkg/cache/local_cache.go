@@ -6,33 +6,23 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ouz/goauthboilerplate/pkg/log"
 	"github.com/coocood/freecache"
-	"github.com/ouz/goauthboilerplate/internal/config"
 )
-
-type Duration time.Duration
 
 var (
 	cacheKeysWithPrefix = make(map[string]map[string]struct{})
 	keyPrefixMu         sync.Mutex
 )
 
-type LocalCacheService interface {
-	Set(prefix, key string, ttl time.Duration, value interface{})
-	Get(prefix, key string, result interface{}) (bool, error)
-	Evict(prefix, key string)
-	EvictByPrefix(prefix string)
-}
-
-type cache struct {
+type localCache struct {
 	cache  *freecache.Cache
-	logger *config.Logger
+	logger *log.Logger
 }
 
-func NewLocalCacheService(logger *config.Logger) LocalCacheService {
-	conf := config.Get().Cache
-	return &cache{
-		cache:  freecache.NewCache(conf.SizeMB * 1024 * 1024),
+func NewLocalCacheService(logger *log.Logger, sizeMB int) LocalCacheService {
+	return &localCache{
+		cache:  freecache.NewCache(sizeMB * 1024 * 1024),
 		logger: logger,
 	}
 }
@@ -41,7 +31,7 @@ func buildFullKey(prefix, key string) string {
 	return fmt.Sprintf("%s:%s", prefix, key)
 }
 
-func (c *cache) Set(prefix, key string, ttl time.Duration, value interface{}) {
+func (c *localCache) Set(prefix, key string, ttl time.Duration, value interface{}) {
 	fullKey := buildFullKey(prefix, key)
 
 	jsonData, err := json.Marshal(value)
@@ -65,7 +55,7 @@ func (c *cache) Set(prefix, key string, ttl time.Duration, value interface{}) {
 	}
 }
 
-func (c *cache) Get(prefix, key string, result interface{}) (bool, error) {
+func (c *localCache) Get(prefix, key string, result interface{}) (bool, error) {
 	fullKey := buildFullKey(prefix, key)
 
 	cachedData, err := c.cache.Get([]byte(fullKey))
@@ -80,7 +70,7 @@ func (c *cache) Get(prefix, key string, result interface{}) (bool, error) {
 	return true, nil
 }
 
-func (c *cache) Evict(prefix, key string) {
+func (c *localCache) Evict(prefix, key string) {
 	fullKey := buildFullKey(prefix, key)
 	c.cache.Del([]byte(fullKey))
 
@@ -95,7 +85,7 @@ func (c *cache) Evict(prefix, key string) {
 	}
 }
 
-func (c *cache) EvictByPrefix(prefix string) {
+func (c *localCache) EvictByPrefix(prefix string) {
 	keyPrefixMu.Lock()
 	defer keyPrefixMu.Unlock()
 

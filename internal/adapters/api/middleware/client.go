@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/ouz/goauthboilerplate/internal/adapters/api/response"
+	resp "github.com/ouz/goauthboilerplate/pkg/response"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
 	"github.com/ouz/goauthboilerplate/internal/domain/auth"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
@@ -17,18 +17,18 @@ func HasClientSecret(authService auth.AuthService) Middleware {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			clientSecret := util.ExtractClientSecret(r)
 			if clientSecret == "" {
-				response.Error(w, errors.UnauthorizedError("Client authentication required - missing client secret", nil))
+				resp.Error(w, errors.UnauthorizedError("Client authentication required - missing client secret", nil))
 				return
 			}
 
 			client, err := authService.FindClientBySecretCached(r.Context(), clientSecret)
 			if err != nil {
-				response.Error(w, errors.UnauthorizedError("Invalid client credentials", err))
+				resp.Error(w, errors.UnauthorizedError("Invalid client credentials", err))
 				return
 			}
 
 			if client.DeletedAt != nil {
-				response.Error(w, errors.ForbiddenError("Client is disabled", nil))
+				resp.Error(w, errors.ForbiddenError("Client is disabled", nil))
 				return
 			}
 

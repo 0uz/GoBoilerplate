@@ -6,21 +6,23 @@ import (
 	"time"
 
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
-	"github.com/ouz/goauthboilerplate/internal/adapters/repo/cache/redis"
+	"github.com/ouz/goauthboilerplate/pkg/cache"
 	"github.com/ouz/goauthboilerplate/internal/config"
 	"github.com/ouz/goauthboilerplate/internal/domain/auth"
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
+	sharedAuth "github.com/ouz/goauthboilerplate/pkg/auth"
+	"github.com/ouz/goauthboilerplate/pkg/log"
 )
 
 type authService struct {
-	logger         *config.Logger
+	logger         *log.Logger
 	authRepository auth.AuthRepository
 	userService    user.UserService
-	redisCache     redis.RedisCacheService
+	redisCache     cache.RedisCacheService
 }
 
-func NewAuthService(logger *config.Logger, ar auth.AuthRepository, us user.UserService, rc redis.RedisCacheService) auth.AuthService {
+func NewAuthService(logger *log.Logger, ar auth.AuthRepository, us user.UserService, rc cache.RedisCacheService) auth.AuthService {
 	return &authService{
 		logger:         logger,
 		authRepository: ar,
@@ -82,13 +84,13 @@ func (s *authService) FindClientBySecretCached(ctx context.Context, clientSecret
 	return *clientFromDB, nil
 }
 
-func (s *authService) RevokeAllTokensByClient(ctx context.Context, userID string, clientType auth.ClientType) error {
-	accessTokenKey := auth.GeneratePrefix(auth.ACCESS_TOKEN, userID, clientType)
+func (s *authService) RevokeAllTokensByClient(ctx context.Context, userID string, clientType sharedAuth.ClientType) error {
+	accessTokenKey := auth.GeneratePrefix(sharedAuth.ACCESS_TOKEN, userID, clientType)
 	if err := s.redisCache.EvictByPrefix(ctx, accessTokenKey); err != nil {
 		return errors.InternalError("Failed to revoke access tokens", err)
 	}
 
-	refreshTokenKey := auth.GeneratePrefix(auth.REFRESH_TOKEN, userID, clientType)
+	refreshTokenKey := auth.GeneratePrefix(sharedAuth.REFRESH_TOKEN, userID, clientType)
 	if err := s.redisCache.EvictByPrefix(ctx, refreshTokenKey); err != nil {
 		return errors.InternalError("Failed to revoke refresh tokens", err)
 	}
@@ -97,12 +99,12 @@ func (s *authService) RevokeAllTokensByClient(ctx context.Context, userID string
 }
 
 func (s *authService) RevokeAllTokens(ctx context.Context, userID string) error {
-	accessTokenKey := auth.GeneratePrefix(auth.ACCESS_TOKEN, userID, "")
+	accessTokenKey := auth.GeneratePrefix(sharedAuth.ACCESS_TOKEN, userID, "")
 	if err := s.redisCache.EvictByPrefix(ctx, accessTokenKey); err != nil {
 		return errors.InternalError("Failed to revoke access tokens", err)
 	}
 
-	refreshTokenKey := auth.GeneratePrefix(auth.REFRESH_TOKEN, userID, "")
+	refreshTokenKey := auth.GeneratePrefix(sharedAuth.REFRESH_TOKEN, userID, "")
 	if err := s.redisCache.EvictByPrefix(ctx, refreshTokenKey); err != nil {
 		return errors.InternalError("Failed to revoke refresh tokens", err)
 	}

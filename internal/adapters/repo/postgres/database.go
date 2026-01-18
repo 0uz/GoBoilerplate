@@ -7,15 +7,16 @@ import (
 
 	"github.com/ouz/goauthboilerplate/internal/config"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/ouz/goauthboilerplate/pkg/log"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/plugin/opentelemetry/tracing"
 )
 
-func ConnectDB(logger *config.Logger) (*gorm.DB, error) {
+func ConnectDB(logger *log.Logger) (*gorm.DB, error) {
 	conf := config.Get().Postgres
 	db, err := gorm.Open(postgres.Open(prepareDSN()), &gorm.Config{
-		Logger: config.NewGormLogger(),
+		Logger: log.NewGormLogger(logger),
 	})
 
 	if err != nil {
@@ -41,7 +42,7 @@ func ConnectDB(logger *config.Logger) (*gorm.DB, error) {
 	return db, nil
 }
 
-func CloseDatabaseConnection(db *gorm.DB, logger *config.Logger) error {
+func CloseDatabaseConnection(db *gorm.DB, logger *log.Logger) error {
 	sqlDB, err := db.DB()
 	if err != nil {
 		return errors.InternalError("Failed to get database instance", err)

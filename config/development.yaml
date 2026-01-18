@@ -1,0 +1,6 @@
+app:
+  environment: "development"
+  logLevel: "DEBUG"
+
+otel:
+  monitoringEnabled: false

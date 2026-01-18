@@ -3,20 +3,20 @@ package api
 import (
 	"net/http"
 
-	resp "github.com/ouz/goauthboilerplate/internal/adapters/api/response"
+	resp "github.com/ouz/goauthboilerplate/pkg/response"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
 	authDto "github.com/ouz/goauthboilerplate/internal/application/auth/dto"
-	"github.com/ouz/goauthboilerplate/internal/config"
 	authService "github.com/ouz/goauthboilerplate/internal/domain/auth"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/ouz/goauthboilerplate/pkg/log"
 )
 
 type AuthHandler struct {
-	logger      *config.Logger
+	logger      *log.Logger
 	authService authService.AuthService
 }
 
-func NewAuthHandler(logger *config.Logger, authService authService.AuthService) *AuthHandler {
+func NewAuthHandler(logger *log.Logger, authService authService.AuthService) *AuthHandler {
 	return &AuthHandler{
 		logger:      logger,
 		authService: authService,
@@ -25,7 +25,7 @@ func NewAuthHandler(logger *config.Logger, authService authService.AuthService) 
 
 func (h *AuthHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request) {
 	var request authDto.RefreshAccessTokenRequest
-	if err := util.DecodeAndValidate(r, &request); err != nil {
+	if err := resp.DecodeAndValidate(r, &request); err != nil {
 		resp.Error(w, err)
 		return
 	}
@@ -52,7 +52,7 @@ func (h *AuthHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request)
 
 func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	var request authDto.UserLoginRequest
-	if err := util.DecodeAndValidate(r, &request); err != nil {
+	if err := resp.DecodeAndValidate(r, &request); err != nil {
 		resp.Error(w, err)
 		return
 	}
@@ -74,7 +74,7 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) LoginAnonymousUser(w http.ResponseWriter, r *http.Request) {
 	var request authDto.AnonymousUserLoginRequest
-	if err := util.DecodeAndValidate(r, &request); err != nil {
+	if err := resp.DecodeAndValidate(r, &request); err != nil {
 		resp.Error(w, err)
 		return
 	}

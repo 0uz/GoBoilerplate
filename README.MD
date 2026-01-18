@@ -1,180 +1,119 @@
 # Go Boilerplate
 
-A robust boilerplate with authentication built with Go, featuring JWT authentication, PostgreSQL integration, Valkey caching, comprehensive monitoring, and RESTful API endpoints. This project follows clean architecture principles with a well-organized project structure.
+Production-ready Go boilerplate with JWT authentication, clean architecture, and full observability stack.
 
 ## Features
 
-- JWT-based authentication system
-- Clean Architecture implementation with clear separation of concerns
-- User management (registration, login, profile)
-- Role-based access control (RBAC)
-- Multi-device session management
-- PostgreSQL database integration with GORM
-- Valkey caching for improved performance
-- RESTful API endpoints with middleware support
-- Structured logging with logrus
-- Docker and Docker Compose support
-- Comprehensive monitoring with Prometheus & Grafana
-- Real-time metrics and alerting
-- Cross-platform build automation with Makefile
-- Hoppscotch collections for API testing
-
-## Prerequisites
-
-- Go 1.25 or higher
-- Docker and Docker Compose
-- Make (for build automation)
+- **Authentication**: JWT-based auth with access/refresh tokens, multi-device session management
+- **Clean Architecture**: Domain-driven design with clear separation of concerns
+- **Database**: PostgreSQL with GORM, connection pooling, migrations
+- **Caching**: Valkey (Redis-compatible) for sessions and caching
+- **Observability**: OpenTelemetry integration (traces, metrics, logs), Prometheus, Grafana, Loki, Tempo
+- **Configuration**: YAML-based config with environment overrides (Viper)
+- **Security**: Role-based access control, rate limiting, client authentication
 
 ## Quick Start
 
 ```bash
-# Start everything (app + monitoring)
-make start-all
+# Clone and setup
+git clone https://github.com/ouz/goauthboilerplate.git
+cd goauthboilerplate
 
-# Check status
-make status
-```
-
-## Setup and Installation
-
-### Using Docker (Recommended)
-```bash
-# Start the application
+# Start with Docker
 make run
 
-# Start monitoring stack (optional)
-make monitoring-start
-
-# Or start everything at once
-make start-all
-```
-
-### Manual Setup
-1. Set up environment variables (create `.env` file):
-```bash
-# Server Configuration
-PORT=8080
-V1_PREFIX=/api/v1
-
-# PostgreSQL Configuration
-PG_DB_HOST=goauthboiler-postgres
-PG_DB_PORT=5432
-PG_DB_USER=app
-PG_DB_PASSWORD=123456
-PG_DB_NAME=appdb
-
-# Valkey Configuration
-VALKEY_HOST=goauthboiler-valkey
-VALKEY_PORT=6379
-VALKEY_PASSWORD=
-VALKEY_DB=0
-
-# JWT Configuration
-JWT_SECRET=s3cr3t
-JWT_ACCESS_EXPIRATION=1h
-JWT_REFRESH_EXPIRATION=5h
-```
-
-2. Start dependencies and run the application:
-```bash
-# Start dependencies (PostgreSQL & Valkey)
+# Or start dependencies only for local development
 make dev
-
-# Run the application locally
 go run cmd/main.go
 ```
 
-## Available Commands
+## Configuration
 
-Run `make help` to see all available commands:
+Configuration uses YAML files with environment-based overrides:
 
-```bash
-# Application
-make run              # Start the application
-make stop             # Stop the application
-make restart          # Restart the application
-make rebuild          # Rebuild and restart
-
-# Development
-make dev              # Start dependencies only
-make test             # Run tests
-make logs             # Show application logs
-
-# Monitoring
-make monitoring-start # Start monitoring stack
-make monitoring-stop  # Stop monitoring stack
-make start-all        # Start app + monitoring
-make stop-all         # Stop everything
-
-# Utilities
-make health           # Check service health
-make clean            # Clean up containers
+```
+config/
+├── base.yaml              # Base configuration
+├── development.yaml       # Local development overrides
+├── development-docker.yaml # Docker development overrides
+└── production.yaml        # Production overrides
 ```
 
-## Monitoring (Optional)
+Set `APP_ENV` to select environment (e.g., `APP_ENV=production`).
 
-The project includes a comprehensive monitoring stack:
-
-- **Grafana Dashboards**: http://localhost:3000 (admin/admin123)
-- **Prometheus Metrics**: http://localhost:9090
-- **Application Metrics**: http://localhost:8080/metrics
-
-## API Documentation
-
-### Authentication
-All endpoints require `x-client-key` header
-
-#### User Management
-- `POST /users/registration` - Register a new user
-- `POST /users/login` - Login and receive JWT tokens
-- `GET /users/me` - Get current user profile
-
-#### Authentication Management
-- `POST /auth/token/refresh` - Refresh JWT token
-- `POST /auth/logout` - Logout current session
-- `POST /auth/logout/all` - Logout from all devices
-
-#### Health Check
-- `GET /live` - Liveness probe
-- `GET /ready` - Readiness probe (checks database connection)
-
-## Testing
-
-### Unit Tests
+Sensitive values can be overridden via environment variables:
 ```bash
-make test             # Run all tests
-make test-coverage    # Run tests with coverage
+export POSTGRES_PASSWORD=your-secure-password
+export JWT_SECRET=your-32-char-minimum-secret
 ```
 
-### API Testing
-Import the provided test collections:
-- **Hoppscotch Collection**: `doc/` 
+## Project Structure
 
-## Development Workflow
+```
+├── cmd/                    # Application entrypoint
+├── config/                 # YAML configuration files
+├── internal/
+│   ├── adapters/          # HTTP handlers, repositories, middleware
+│   ├── application/       # Business logic services
+│   ├── config/            # App configuration loader
+│   ├── domain/            # Domain models and interfaces
+│   └── observability/     # Telemetry setup
+├── pkg/                   # Reusable packages
+│   ├── auth/              # Auth utilities (token types, client types)
+│   ├── cache/             # Cache interfaces and implementations
+│   ├── config/            # Generic config loader
+│   ├── errors/            # Error handling
+│   ├── log/               # Structured logging
+│   ├── otel/              # OpenTelemetry helpers
+│   ├── response/          # HTTP response utilities
+│   └── stream/            # Event streaming (Redis Streams)
+├── migrations/            # Database migrations
+└── monitoring/            # Grafana, Prometheus, Loki, Tempo configs
+```
+
+## API Endpoints
+
+All business endpoints require `x-client-key` header.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/users/registration` | Register user |
+| POST | `/api/v1/users/login` | Login |
+| GET | `/api/v1/users/me` | Get current user (auth required) |
+| POST | `/api/v1/auth/token/refresh` | Refresh access token |
+| POST | `/api/v1/auth/logout` | Logout current session |
+| POST | `/api/v1/auth/logout/all` | Logout all sessions |
+| GET | `/live` | Liveness probe |
+| GET | `/ready` | Readiness probe |
+| GET | `/metrics` | Prometheus metrics |
+
+## Commands
 
 ```bash
-# Development setup
+make run              # Start application
 make dev              # Start dependencies only
-go run cmd/main.go    # Run app locally
-
-# Testing
+make stop             # Stop application
 make test             # Run tests
-make test-coverage    # Run with coverage
-
-# Production
+make monitoring-start # Start observability stack
 make start-all        # Start everything
-make health           # Check health
+make status           # Show service status
 make logs             # View logs
-
-# Cleanup
-make stop-all         # Stop everything
-make clean            # Clean containers
 ```
 
-## Contributing
+## Monitoring
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Start the monitoring stack with `make monitoring-start`:
+
+- **Grafana**: http://localhost:3000 (admin/admin123)
+- **Prometheus**: http://localhost:9090
+- **App Metrics**: http://localhost:8080/metrics
+
+## Requirements
+
+- Go 1.25+
+- Docker & Docker Compose
+- Make
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License - see [LICENSE](LICENSE) for details.

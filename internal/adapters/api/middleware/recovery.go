@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"github.com/ouz/goauthboilerplate/internal/config"
+	"github.com/ouz/goauthboilerplate/pkg/log"
 )
 
-func Recovery(logger *config.Logger) Middleware {
+func Recovery(logger *log.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {

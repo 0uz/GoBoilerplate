@@ -1,0 +1,16 @@
+app:
+  environment: "production"
+  logLevel: "WARN"
+
+postgres:
+  host: "postgres"
+  maxOpenConns: 50
+  maxIdleConns: 25
+  connMaxLifetimeMinutes: 15
+
+valkey:
+  host: "valkey"
+
+otel:
+  monitoringEnabled: true
+  exporterEndpoint: "otel-collector:4317"

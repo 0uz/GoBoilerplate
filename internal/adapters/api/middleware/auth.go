@@ -3,9 +3,8 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"strings"
 
-	"github.com/ouz/goauthboilerplate/internal/adapters/api/response"
+	resp "github.com/ouz/goauthboilerplate/pkg/response"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
 	"github.com/ouz/goauthboilerplate/internal/domain/auth"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
@@ -13,7 +12,6 @@ import (
 
 const (
 	authorizationHeader = "Authorization"
-	bearerPrefix        = "Bearer"
 )
 
 func Protected(authService auth.AuthService) Middleware {
@@ -21,25 +19,13 @@ func Protected(authService auth.AuthService) Middleware {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get(authorizationHeader)
 			if authHeader == "" {
-				response.Error(w, errors.UnauthorizedError("missing authorization header", nil))
+				resp.Error(w, errors.UnauthorizedError("missing authorization header", nil))
 				return
 			}
 
-			parts := strings.Fields(authHeader)
-			if len(parts) != 2 {
-				response.Error(w, errors.UnauthorizedError("invalid authorization header format", nil))
-				return
-			}
-
-			if !strings.EqualFold(parts[0], bearerPrefix) {
-				response.Error(w, errors.UnauthorizedError("unsupported authorization type", nil))
-				return
-			}
-
-			token := parts[1]
-			user, err := authService.ValidateTokenAndGetUser(r.Context(), token)
+			user, err := authService.ValidateTokenAndGetUser(r.Context(), authHeader)
 			if err != nil {
-				response.Error(w, errors.UnauthorizedError("invalid or expired token", err))
+				resp.Error(w, err)
 				return
 			}
 

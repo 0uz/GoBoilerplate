@@ -1,0 +1,13 @@
+app:
+  environment: "development-docker"
+  logLevel: "DEBUG"
+
+postgres:
+  host: "pgdb"
+
+valkey:
+  host: "valkey"
+
+otel:
+  monitoringEnabled: false
+  exporterEndpoint: "otel-collector:4317"

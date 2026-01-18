@@ -3,12 +3,12 @@ package api
 import (
 	"net/http"
 
-	resp "github.com/ouz/goauthboilerplate/internal/adapters/api/response"
+	resp "github.com/ouz/goauthboilerplate/pkg/response"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
 	authDto "github.com/ouz/goauthboilerplate/internal/application/auth/dto"
 	userDto "github.com/ouz/goauthboilerplate/internal/application/user/dto"
-	"github.com/ouz/goauthboilerplate/internal/config"
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
+	"github.com/ouz/goauthboilerplate/pkg/log"
 )
 
 const (
@@ -17,11 +17,11 @@ const (
 )
 
 type UserHandler struct {
-	logger      *config.Logger
+	logger      *log.Logger
 	userService user.UserService
 }
 
-func NewUserHandler(logger *config.Logger, userService user.UserService) *UserHandler {
+func NewUserHandler(logger *log.Logger, userService user.UserService) *UserHandler {
 	return &UserHandler{
 		logger:      logger,
 		userService: userService,
@@ -30,7 +30,7 @@ func NewUserHandler(logger *config.Logger, userService user.UserService) *UserHa
 
 func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var request authDto.UserRegisterRequest
-	if err := util.DecodeAndValidate(r, &request); err != nil {
+	if err := resp.DecodeAndValidate(r, &request); err != nil {
 		resp.Error(w, err)
 		return
 	}

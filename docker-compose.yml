@@ -10,25 +10,8 @@ services:
       pgdb:
         condition: service_healthy
     environment:
-      APP_ENV: DEV
-      DB_PORT: ${PORT}
-      V1_PREFIX: ${V1_PREFIX}
-      PG_DB_HOST: pgdb
-      PG_DB_USER: ${PG_DB_USER}
-      PG_DB_PASSWORD: ${PG_DB_PASSWORD}
-      PG_DB_NAME: ${PG_DB_NAME}
-      PG_DB_PORT: ${PG_DB_PORT}
-      VALKEY_HOST: valkey
-      VALKEY_PORT: ${VALKEY_PORT}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_ACCESS_EXPIRATION: ${JWT_ACCESS_EXPIRATION}
-      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION}
-      MAIL_HOST: ${MAIL_HOST}
-      MAIL_PORT: ${MAIL_PORT}
-      MAIL_USERNAME: ${MAIL_USERNAME}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
-      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      APP_ENV: development-docker
+      POSTGRES_PASSWORD: ${PG_DB_PASSWORD}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/ready"]
       interval: 1s
@@ -39,17 +22,16 @@ services:
       - app-network
 
   pgdb:
-    image: postgres:latest
-    user: postgres
+    image: postgres:18
     container_name: goauthboiler-postgres
     environment:
       POSTGRES_USER: ${PG_DB_USER}
       POSTGRES_PASSWORD: ${PG_DB_PASSWORD}
       POSTGRES_DB: ${PG_DB_NAME}
     ports:
-      - "${PG_DB_PORT}:5432"
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/18
       - ./migrations/1-init.sql:/docker-entrypoint-initdb.d/1-init.sql
     healthcheck:
       test: "pg_isready -d ${PG_DB_NAME} -U ${PG_DB_USER}"
@@ -60,10 +42,10 @@ services:
       - app-network
 
   valkey:
-    image: valkey/valkey:latest
+    image: valkey/valkey:9.0.0
     container_name: goauthboiler-valkey
     ports:
-      - "${VALKEY_PORT}:6379"
+      - "6379:6379"
     command: valkey-server
     volumes:
       - valkey-data:/data

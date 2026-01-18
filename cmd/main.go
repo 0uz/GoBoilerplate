@@ -18,8 +18,8 @@ import (
 
 	"github.com/ouz/goauthboilerplate/internal/adapters/api"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/middleware"
-	"github.com/ouz/goauthboilerplate/internal/adapters/api/response"
-	redisCache "github.com/ouz/goauthboilerplate/internal/adapters/repo/cache/redis"
+	resp "github.com/ouz/goauthboilerplate/pkg/response"
+	redisCache "github.com/ouz/goauthboilerplate/pkg/cache/redis"
 	"github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres"
 	"github.com/ouz/goauthboilerplate/internal/observability"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
@@ -28,29 +28,38 @@ import (
 	repoUser "github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres/user"
 
 	"github.com/ouz/goauthboilerplate/internal/application/auth"
-	"github.com/ouz/goauthboilerplate/internal/application/user"
 	"github.com/ouz/goauthboilerplate/internal/config"
+	"github.com/ouz/goauthboilerplate/internal/application/user"
+	"github.com/ouz/goauthboilerplate/pkg/log"
 	"gorm.io/gorm"
 )
 
-var logger *config.Logger
+var logger *log.Logger
 
 func main() {
-	logger = config.NewLogger()
 	if err := run(); err != nil {
-		logger.Error("Application failed to start", "error", err)
+		panic(err)
 	}
 }
 
 func run() error {
 	ctx := context.Background()
 
-	if err := config.Load(logger); err != nil {
+	if err := config.Load(); err != nil {
 		return err
 	}
 
-	config.ReinitializeLogger()
-	logger = config.NewLogger()
+	otelShutdown, err := observability.InitTelemetry(ctx)
+	if err != nil {
+		panic(err)
+		otelShutdown = func(_ context.Context) error { return nil }
+	}
+
+	defer func() {
+		err = errs.Join(err, otelShutdown(context.Background()))
+	}()
+
+	logger = observability.InitLogger()
 
 	db, err := postgres.ConnectDB(logger)
 	if err != nil {
@@ -63,7 +72,7 @@ func run() error {
 		}
 	}()
 
-	redisClient, err := redisCache.ConnectRedis(logger)
+	redisClient, err := redisCache.ConnectRedis(logger, config.Get().Valkey.Host, config.Get().Valkey.Port, config.Get().Otel.MonitoringEnabled)
 	if err != nil {
 		return err
 	}
@@ -74,17 +83,7 @@ func run() error {
 		}
 	}()
 
-	otelShutdown, err := observability.SetupOTelSDK(ctx, logger)
-	if err != nil {
-		logger.Warn("Failed to setup OpenTelemetry, continuing without monitoring", "error", err)
-		otelShutdown = func(_ context.Context) error { return nil }
-	}
-
-	defer func() {
-		err = errs.Join(err, otelShutdown(context.Background()))
-	}()
-
-	response.InitResponseLogger(logger)
+	resp.InitResponseLogger(logger)
 
 	businessRouter := http.NewServeMux()
 	setupServiceAndRoutes(businessRouter, db, redisClient)
@@ -148,7 +147,7 @@ func setupRouterWithTelemetry(mainRouter *http.ServeMux) http.Handler {
 	return mainRouterWithOTel
 }
 
-func createFinalRouter(businessRouter *http.ServeMux, db *gorm.DB, logger *config.Logger) *http.ServeMux {
+func createFinalRouter(businessRouter *http.ServeMux, db *gorm.DB, logger *log.Logger) *http.ServeMux {
 	chain := middleware.Chain(
 		middleware.Logging(logger),
 		middleware.Recovery(logger),

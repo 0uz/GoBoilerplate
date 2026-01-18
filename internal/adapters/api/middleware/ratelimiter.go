@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ouz/goauthboilerplate/internal/adapters/api/response"
+	resp "github.com/ouz/goauthboilerplate/pkg/response"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
 )
 
@@ -127,12 +127,12 @@ func RateLimitMiddleware(limiter RateLimiter) Middleware {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ip, _, err := net.SplitHostPort(r.RemoteAddr)
 			if err != nil {
-				response.Error(w, errors.InternalError("Failed to parse remote address", err))
+				resp.Error(w, errors.InternalError("Failed to parse remote address", err))
 				return
 			}
 
 			if !limiter.AllowWithContext(r.Context(), ip) {
-				response.Error(w, errors.NewAppError(
+				resp.Error(w, errors.NewAppError(
 					errors.ErrCodeTooManyRequests,
 					"RATE_LIMIT_EXCEEDED",
 					"Too many requests, please try again later",

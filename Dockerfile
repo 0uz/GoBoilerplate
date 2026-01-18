@@ -31,9 +31,12 @@ RUN addgroup -S appgroup && \
 
 WORKDIR /app
 
-# Binary ve .env dosyasını kopyala
+# Binary kopyala
 COPY --from=builder /app/app .
 COPY .env .
+
+# Config dosyalarını kopyala
+COPY --from=builder /app/config/ ./config/
 
 # Template dosyalarını kopyala
 COPY --from=builder /app/internal/adapters/api/template/ ./internal/adapters/api/template/

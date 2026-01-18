@@ -2,56 +2,13 @@ package config
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-	"strconv"
 	"time"
 
-	"github.com/joho/godotenv"
+	pkgconfig "github.com/ouz/goauthboilerplate/pkg/config"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
 )
 
 const (
-	envPort                 = "PORT"
-	envV1Prefix             = "V1_PREFIX"
-	envPGHost               = "PG_DB_HOST"
-	envPGUser               = "PG_DB_USER"
-	envPGPassword           = "PG_DB_PASSWORD"
-	envPGName               = "PG_DB_NAME"
-	envPGPort               = "PG_DB_PORT"
-	envPGTimeZone           = "PG_DB_TIMEZONE"
-	envPGMaxOpenConns       = "PG_DB_MAX_OPEN_CONNS"
-	envPGMaxIdleConns       = "PG_DB_MAX_IDLE_CONNS"
-	envPGConnMaxLifetimeMin = "PG_DB_CONN_MAX_LIFETIME_MINUTES"
-	envPGCloseTimeoutSec    = "PG_DB_CLOSE_TIMEOUT_SECONDS"
-	envValkeyHost           = "VALKEY_HOST"
-	envValkeyPort           = "VALKEY_PORT"
-	envJWTSecret            = "JWT_SECRET"
-	envJWTAccessExpiration  = "JWT_ACCESS_EXPIRATION"
-	envJWTRefreshExpiration = "JWT_REFRESH_EXPIRATION"
-	envMailHost             = "MAIL_HOST"
-	envMailPort             = "MAIL_PORT"
-	envMailUsername         = "MAIL_USERNAME"
-	envMailPassword         = "MAIL_PASSWORD"
-	envCacheSizeMB          = "CACHE_SIZE_MB"
-	envOtelServiceName      = "OTEL_SERVICE_NAME"
-	envOtelExporterEndpoint = "OTEL_EXPORTER_OTLP_ENDPOINT"
-	envMonitoringEnabled    = "MONITORING_ENABLED"
-	envAppEnv               = "APP_ENV"
-
-	// Default values
-	defaultPort                 = "8080"
-	defaultV1Prefix             = "/api/v1"
-	defaultPGTimeZone           = "Europe/Istanbul"
-	defaultPGMaxOpenConns       = 20
-	defaultPGMaxIdleConns       = 25
-	defaultPGConnMaxLifetimeMin = 5
-	defaultPGCloseTimeoutSec    = 5
-	defaultCacheSizeMB          = 100
-	defaultOtelServiceName      = "go-auth-boilerplate"
-	defaultOtelExporterEndpoint = "otel-collector:4317"
-	defaultMonitoringEnabled    = "false"
-
 	// Validation constants
 	minJWTSecretLength = 32
 	minCacheSizeMB     = 10
@@ -60,183 +17,105 @@ const (
 	maxDBConnections   = 100
 )
 
+// Config holds all configuration for the application
 type Config struct {
-	App      AppConfig
-	Postgres PostgresDatabaseConfig
-	Valkey   ValkeyConfig
-	JWT      JWTConfig
-	Mail     MailConfig
-	Cache    CacheConfig
-	Otel     OtelConfig
+	App      AppConfig      `mapstructure:"app"`
+	Postgres PostgresConfig `mapstructure:"postgres"`
+	Valkey   ValkeyConfig   `mapstructure:"valkey"`
+	JWT      JWTConfig      `mapstructure:"jwt"`
+	Mail     MailConfig     `mapstructure:"mail"`
+	Cache    CacheConfig    `mapstructure:"cache"`
+	Otel     OtelConfig     `mapstructure:"otel"`
 }
 
 type AppConfig struct {
-	Port        string
-	V1Prefix    string
-	Environment string
+	Port        string `mapstructure:"port"`
+	V1Prefix    string `mapstructure:"v1Prefix"`
+	Environment string `mapstructure:"environment"`
+	LogLevel    string `mapstructure:"logLevel"`
 }
 
-type OtelConfig struct {
-	ServiceName       string
-	ExporterEndpoint  string
-	MonitoringEnabled bool
-}
-
-type PostgresDatabaseConfig struct {
-	Host                   string
-	User                   string
-	Password               string
-	Name                   string
-	Port                   string
-	TimeZone               string
-	MaxOpenConns           int
-	MaxIdleConns           int
-	ConnMaxLifetimeMinutes int
-	CloseTimeoutSeconds    int
+type PostgresConfig struct {
+	Host                   string `mapstructure:"host"`
+	User                   string `mapstructure:"user"`
+	Password               string `mapstructure:"password"`
+	Name                   string `mapstructure:"name"`
+	Port                   string `mapstructure:"port"`
+	TimeZone               string `mapstructure:"timeZone"`
+	MaxOpenConns           int    `mapstructure:"maxOpenConns"`
+	MaxIdleConns           int    `mapstructure:"maxIdleConns"`
+	ConnMaxLifetimeMinutes int    `mapstructure:"connMaxLifetimeMinutes"`
+	CloseTimeoutSeconds    int    `mapstructure:"closeTimeoutSeconds"`
 }
 
 type ValkeyConfig struct {
-	Host string
-	Port string
+	Host string `mapstructure:"host"`
+	Port string `mapstructure:"port"`
 }
 
 type JWTConfig struct {
-	Secret            string
-	AccessExpiration  time.Duration
-	RefreshExpiration time.Duration
+	Secret            string        `mapstructure:"secret"`
+	AccessExpiration  time.Duration `mapstructure:"accessExpiration"`
+	RefreshExpiration time.Duration `mapstructure:"refreshExpiration"`
 }
 
 type MailConfig struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
 }
 
 type CacheConfig struct {
-	SizeMB int
+	SizeMB int `mapstructure:"sizeMB"`
 }
 
-var (
-	conf *Config
-)
+type OtelConfig struct {
+	ServiceName       string `mapstructure:"serviceName"`
+	ExporterEndpoint  string `mapstructure:"exporterEndpoint"`
+	MonitoringEnabled bool   `mapstructure:"monitoringEnabled"`
+}
 
-func Load(logger *Logger) error {
-	if err := loadEnv(logger); err != nil {
-		logger.Error("Loading environment variables", "error", err)
+var conf *Config
+
+// Load loads the configuration from yaml files and environment variables
+func Load() error {
+	var cfg Config
+
+	if err := pkgconfig.LoadConfig("", &cfg, ""); err != nil {
+		return errors.GenericError("loading config from yaml", err)
 	}
 
-	config, err := parseConfig()
-	if err != nil {
-		return errors.GenericError("Parsing config", err)
-	}
-
-	if err := validate(config); err != nil {
+	if err := validate(&cfg); err != nil {
 		return err
 	}
 
-	conf = config
+	conf = &cfg
 	return nil
 }
 
+// Get returns the loaded configuration
 func Get() *Config {
 	return conf
 }
 
-func loadEnv(logger *Logger) error {
-	envPath := filepath.Join(".", ".env")
-	if err := godotenv.Load(envPath); err != nil {
-		logger.Info("No .env file found, using environment variables")
-	}
-	return nil
-}
-
-func parseConfig() (*Config, error) {
-	accessExp, err := time.ParseDuration(os.Getenv(envJWTAccessExpiration))
-	if err != nil {
-		return nil, errors.ValidationError("invalid JWT_ACCESS_EXPIRATION", err)
-	}
-
-	refreshExp, err := time.ParseDuration(os.Getenv(envJWTRefreshExpiration))
-	if err != nil {
-		return nil, errors.ValidationError("invalid JWT_REFRESH_EXPIRATION", err)
-	}
-
-	mailPort, err := strconv.Atoi(os.Getenv(envMailPort))
-	if err != nil {
-		return nil, errors.ValidationError("invalid MAIL_PORT", err)
-	}
-
-	maxOpenConns, _ := strconv.Atoi(getEnvOrDefault(envPGMaxOpenConns, strconv.Itoa(defaultPGMaxOpenConns)))
-	maxIdleConns, _ := strconv.Atoi(getEnvOrDefault(envPGMaxIdleConns, strconv.Itoa(defaultPGMaxIdleConns)))
-	connMaxLifetimeMinutes, _ := strconv.Atoi(getEnvOrDefault(envPGConnMaxLifetimeMin, strconv.Itoa(defaultPGConnMaxLifetimeMin)))
-	closeTimeoutSeconds, _ := strconv.Atoi(getEnvOrDefault(envPGCloseTimeoutSec, strconv.Itoa(defaultPGCloseTimeoutSec)))
-	cacheSizeMB, _ := strconv.Atoi(getEnvOrDefault(envCacheSizeMB, strconv.Itoa(defaultCacheSizeMB)))
-
-	return &Config{
-		App: AppConfig{
-			Port:        getEnvOrDefault(envPort, defaultPort),
-			V1Prefix:    getEnvOrDefault(envV1Prefix, defaultV1Prefix),
-			Environment: getEnvOrDefault(envAppEnv, "DEV"),
-		},
-		Postgres: PostgresDatabaseConfig{
-			Host:                   os.Getenv(envPGHost),
-			User:                   os.Getenv(envPGUser),
-			Password:               os.Getenv(envPGPassword),
-			Name:                   os.Getenv(envPGName),
-			Port:                   os.Getenv(envPGPort),
-			TimeZone:               getEnvOrDefault(envPGTimeZone, defaultPGTimeZone),
-			MaxOpenConns:           maxOpenConns,
-			MaxIdleConns:           maxIdleConns,
-			ConnMaxLifetimeMinutes: connMaxLifetimeMinutes,
-			CloseTimeoutSeconds:    closeTimeoutSeconds,
-		},
-		Valkey: ValkeyConfig{
-			Host: os.Getenv(envValkeyHost),
-			Port: os.Getenv(envValkeyPort),
-		},
-		JWT: JWTConfig{
-			Secret:            os.Getenv(envJWTSecret),
-			AccessExpiration:  accessExp,
-			RefreshExpiration: refreshExp,
-		},
-		Mail: MailConfig{
-			Host:     os.Getenv(envMailHost),
-			Port:     mailPort,
-			Username: os.Getenv(envMailUsername),
-			Password: os.Getenv(envMailPassword),
-		},
-		Cache: CacheConfig{
-			SizeMB: cacheSizeMB,
-		},
-		Otel: OtelConfig{
-			ServiceName:       getEnvOrDefault(envOtelServiceName, defaultOtelServiceName),
-			ExporterEndpoint:  getEnvOrDefault(envOtelExporterEndpoint, defaultOtelExporterEndpoint),
-			MonitoringEnabled: getBoolEnvOrDefault(envMonitoringEnabled, defaultMonitoringEnabled),
-		},
-	}, nil
-}
-
 func validate(c *Config) error {
+	// Required string fields
 	checks := []struct {
 		value string
 		name  string
 	}{
-		{c.App.Port, envPort},
-		{c.App.V1Prefix, envV1Prefix},
-		{c.Postgres.Host, envPGHost},
-		{c.Postgres.User, envPGUser},
-		{c.Postgres.Password, envPGPassword},
-		{c.Postgres.Name, envPGName},
-		{c.Postgres.Port, envPGPort},
-		{c.Valkey.Host, envValkeyHost},
-		{c.Valkey.Port, envValkeyPort},
-		{c.JWT.Secret, envJWTSecret},
-		{c.Mail.Host, envMailHost},
-		{c.Mail.Username, envMailUsername},
-		{c.Mail.Password, envMailPassword},
-		{c.Otel.ServiceName, envOtelServiceName},
-		{c.Otel.ExporterEndpoint, envOtelExporterEndpoint},
+		{c.App.Port, "app.port"},
+		{c.App.V1Prefix, "app.v1Prefix"},
+		{c.Postgres.Host, "postgres.host"},
+		{c.Postgres.User, "postgres.user"},
+		{c.Postgres.Name, "postgres.name"},
+		{c.Postgres.Port, "postgres.port"},
+		{c.Valkey.Host, "valkey.host"},
+		{c.Valkey.Port, "valkey.port"},
+		{c.JWT.Secret, "jwt.secret"},
+		{c.Otel.ServiceName, "otel.serviceName"},
+		{c.Otel.ExporterEndpoint, "otel.exporterEndpoint"},
 	}
 
 	for _, check := range checks {
@@ -245,60 +124,45 @@ func validate(c *Config) error {
 		}
 	}
 
-	if c.Mail.Port == 0 {
-		return errors.ValidationError("MAIL_PORT is not set", nil)
-	}
-
-	if _, err := strconv.Atoi(c.App.Port); err != nil {
-		return errors.ValidationError("invalid PORT", err)
-	}
-
-	if _, err := strconv.Atoi(c.Postgres.Port); err != nil {
-		return errors.ValidationError("invalid PG_DB_PORT", err)
-	}
-
-	if _, err := strconv.Atoi(c.Valkey.Port); err != nil {
-		return errors.ValidationError("invalid VALKEY_PORT", err)
-	}
-
+	// JWT secret length validation
 	if len(c.JWT.Secret) < minJWTSecretLength {
-		return errors.ValidationError(fmt.Sprintf("JWT_SECRET must be at least %d characters long", minJWTSecretLength), nil)
+		return errors.ValidationError(
+			fmt.Sprintf("jwt.secret must be at least %d characters long", minJWTSecretLength),
+			nil,
+		)
 	}
 
+	// JWT expiration validation
+	if c.JWT.AccessExpiration <= 0 {
+		return errors.ValidationError("jwt.accessExpiration must be greater than 0", nil)
+	}
+
+	if c.JWT.RefreshExpiration <= 0 {
+		return errors.ValidationError("jwt.refreshExpiration must be greater than 0", nil)
+	}
+
+	// Cache size validation
 	if c.Cache.SizeMB < minCacheSizeMB || c.Cache.SizeMB > maxCacheSizeMB {
-		return errors.ValidationError(fmt.Sprintf("CACHE_SIZE_MB must be between %d and %d", minCacheSizeMB, maxCacheSizeMB), nil)
+		return errors.ValidationError(
+			fmt.Sprintf("cache.sizeMB must be between %d and %d", minCacheSizeMB, maxCacheSizeMB),
+			nil,
+		)
 	}
 
+	// Database connection pool validation
 	if c.Postgres.MaxOpenConns < minDBConnections || c.Postgres.MaxOpenConns > maxDBConnections {
-		return errors.ValidationError(fmt.Sprintf("PG_DB_MAX_OPEN_CONNS must be between %d and %d", minDBConnections, maxDBConnections), nil)
+		return errors.ValidationError(
+			fmt.Sprintf("postgres.maxOpenConns must be between %d and %d", minDBConnections, maxDBConnections),
+			nil,
+		)
 	}
 
 	if c.Postgres.MaxIdleConns < minDBConnections || c.Postgres.MaxIdleConns > c.Postgres.MaxOpenConns {
-		return errors.ValidationError(fmt.Sprintf("PG_DB_MAX_IDLE_CONNS must be between %d and %d", minDBConnections, c.Postgres.MaxOpenConns), nil)
+		return errors.ValidationError(
+			fmt.Sprintf("postgres.maxIdleConns must be between %d and %d", minDBConnections, c.Postgres.MaxOpenConns),
+			nil,
+		)
 	}
 
 	return nil
-}
-
-func getEnvOrDefault(key, defaultValue string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		return defaultValue
-	}
-	return value
-}
-
-func getBoolEnvOrDefault(key, defaultValue string) bool {
-	value := os.Getenv(key)
-	if value == "" {
-		value = defaultValue
-	}
-
-	boolValue, err := strconv.ParseBool(value)
-	if err != nil {
-		// If parsing fails, use default value
-		defaultBool, _ := strconv.ParseBool(defaultValue)
-		return defaultBool
-	}
-	return boolValue
 }

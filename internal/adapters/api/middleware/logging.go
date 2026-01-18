@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ouz/goauthboilerplate/internal/config"
+	"github.com/ouz/goauthboilerplate/pkg/log"
 )
 
-func Logging(logger *config.Logger) Middleware {
+func Logging(logger *log.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
@@ -16,11 +16,13 @@ func Logging(logger *config.Logger) Middleware {
 			next.ServeHTTP(wrapper, r)
 			duration := time.Since(start)
 
+			realIP := getRealIP(r)
+
 			entry := logger.With(
 				"method", r.Method,
 				"status", wrapper.status,
 				"path", r.URL.EscapedPath(),
-				"ip", r.RemoteAddr,
+				"ip", realIP,
 				"user_agent", r.UserAgent(),
 				"duration", duration.String(),
 				"size", wrapper.written,
@@ -31,7 +33,7 @@ func Logging(logger *config.Logger) Middleware {
 			case wrapper.status >= 500:
 				entry.Error("Server error occurred")
 			case wrapper.status >= 400:
-				entry.Warn("Client error occurred")
+				entry.Info("Client error occurred")
 			case wrapper.status >= 300:
 				entry.Info("Redirection occurred")
 			default:
@@ -56,4 +58,21 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	n, err := rw.ResponseWriter.Write(b)
 	rw.written += int64(n)
 	return n, err
+}
+
+func getRealIP(r *http.Request) string {
+	if ip := r.Header.Get("X-Real-IP"); ip != "" {
+		return ip
+	}
+
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		for i := 0; i < len(xff); i++ {
+			if xff[i] == ',' {
+				return xff[:i]
+			}
+		}
+		return xff
+	}
+
+	return r.RemoteAddr
 }

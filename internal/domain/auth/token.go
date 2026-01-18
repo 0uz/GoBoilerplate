@@ -5,33 +5,19 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
+	"github.com/ouz/goauthboilerplate/pkg/auth"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
 )
 
-type TokenType string
-
-const (
-	ACCESS_TOKEN  TokenType = "ACCESS_TOKEN"
-	REFRESH_TOKEN TokenType = "REFRESH_TOKEN"
-)
-
-type TokenClaims struct {
-	jwt.RegisteredClaims
-	UserId     string     `json:"uid"`
-	ClientType ClientType `json:"clientType"`
-	TokenType  TokenType  `json:"tokenType"`
-}
-
 type Token struct {
 	jwt.RegisteredClaims
-	UserId     string     `json:"uid"`
-	RawToken   string     `json:"token"`
-	ClientType ClientType `json:"clientType"`
-	TokenType  TokenType  `json:"tokenType"`
+	UserId     string          `json:"uid"`
+	RawToken   string          `json:"token"`
+	ClientType auth.ClientType `json:"clientType"`
+	TokenType  auth.TokenType  `json:"tokenType"`
 }
 
-func validateTokenInput(userID string, tokenType TokenType, jwtSecret string, clientType ClientType, expiration time.Duration) error {
+func validateTokenInput(userID string, tokenType auth.TokenType, jwtSecret string, clientType auth.ClientType, expiration time.Duration) error {
 	if jwtSecret == "" {
 		return errors.ValidationError("JWT secret cannot be empty", nil)
 	}
@@ -55,16 +41,15 @@ func validateTokenInput(userID string, tokenType TokenType, jwtSecret string, cl
 	return nil
 }
 
-func NewToken(userID string, tokenType TokenType, jwtSecret string, clientType ClientType, expiration time.Duration) (Token, error) {
+func NewToken(jti, userID string, tokenType auth.TokenType, jwtSecret string, clientType auth.ClientType, expiration time.Duration) (Token, error) {
 	if err := validateTokenInput(userID, tokenType, jwtSecret, clientType, expiration); err != nil {
 		return Token{}, err
 	}
 
-	jti := uuid.New().String()
 	now := time.Now()
 	expiresAt := now.Add(expiration)
 
-	claims := TokenClaims{
+	claims := auth.TokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			ID:        jti,
@@ -93,7 +78,7 @@ func ValidateToken(tokenString string, jwtSecret string) (*Token, error) {
 		return nil, errors.ValidationError("JWT secret cannot be empty", nil)
 	}
 
-	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &auth.TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.UnauthorizedError("Invalid token signing method", nil)
 		}
@@ -101,10 +86,13 @@ func ValidateToken(tokenString string, jwtSecret string) (*Token, error) {
 	})
 
 	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, errors.ExpiredTokenError("Token has expired", err)
+		}
 		return nil, errors.UnauthorizedError("Invalid token", err)
 	}
 
-	claims, ok := token.Claims.(*TokenClaims)
+	claims, ok := token.Claims.(*auth.TokenClaims)
 	if !ok {
 		return nil, errors.UnauthorizedError("Invalid token claims", nil)
 	}
@@ -118,25 +106,49 @@ func ValidateToken(tokenString string, jwtSecret string) (*Token, error) {
 	}, nil
 }
 
+func GetTokenClaims(tokenString string, jwtSecret string) (*auth.TokenClaims, error) {
+	if jwtSecret == "" {
+		return nil, errors.ValidationError("JWT secret cannot be empty", nil)
+	}
+
+	token, err := jwt.ParseWithClaims(tokenString, &auth.TokenClaims{}, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.UnauthorizedError("Invalid token signing method", nil)
+		}
+		return []byte(jwtSecret), nil
+	})
+
+	if err != nil || token == nil {
+		return nil, errors.UnauthorizedError("Invalid token", err)
+	}
+
+	claims, ok := token.Claims.(*auth.TokenClaims)
+	if !ok {
+		return nil, errors.UnauthorizedError("Invalid token claims", nil)
+	}
+
+	return claims, nil
+}
+
 func (t *Token) IsExpired() bool {
 	return time.Now().After(t.ExpiresAt.Time)
 }
 
 func (t *Token) GetPrefix() string {
-	if t.TokenType == ACCESS_TOKEN {
+	if t.TokenType == auth.ACCESS_TOKEN {
 		return fmt.Sprintf("uat:%s:%s", t.UserId, string(t.ClientType))
 	}
 
-	if t.TokenType == REFRESH_TOKEN {
+	if t.TokenType == auth.REFRESH_TOKEN {
 		return fmt.Sprintf("urt:%s:%s", t.UserId, string(t.ClientType))
 	}
 
 	return ""
 }
 
-func GeneratePrefix(tokenType TokenType, userID string, clientType ClientType) string {
+func GeneratePrefix(tokenType auth.TokenType, userID string, clientType auth.ClientType) string {
 	prefix := "uat"
-	if tokenType == REFRESH_TOKEN {
+	if tokenType == auth.REFRESH_TOKEN {
 		prefix = "urt"
 	}
 

@@ -1,0 +1,40 @@
+app:
+  port: "8080"
+  v1Prefix: "/api/v1"
+  environment: "development"
+  logLevel: "INFO"
+
+postgres:
+  host: "localhost"
+  user: "app"
+  password: ""
+  name: "appdb"
+  port: "5432"
+  timeZone: "Europe/Istanbul"
+  maxOpenConns: 20
+  maxIdleConns: 20
+  connMaxLifetimeMinutes: 5
+  closeTimeoutSeconds: 5
+
+valkey:
+  host: "localhost"
+  port: "6379"
+
+jwt:
+  secret: "super-secret-key-change-me-for-production"
+  accessExpiration: "15m"
+  refreshExpiration: "168h"
+
+mail:
+  host: "smtp.test.com"
+  port: 587
+  username: "test@test.com"
+  password: "123456"
+
+cache:
+  sizeMB: 100
+
+otel:
+  serviceName: "go-auth-boilerplate"
+  exporterEndpoint: "otel-collector:4317"
+  monitoringEnabled: false

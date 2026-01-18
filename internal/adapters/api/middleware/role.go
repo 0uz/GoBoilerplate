@@ -5,7 +5,7 @@ import (
 
 	"slices"
 
-	"github.com/ouz/goauthboilerplate/internal/adapters/api/response"
+	resp "github.com/ouz/goauthboilerplate/pkg/response"
 	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
 	"github.com/ouz/goauthboilerplate/internal/domain/user"
 	"github.com/ouz/goauthboilerplate/pkg/errors"
@@ -16,14 +16,14 @@ func HasRoles(requiredRoles ...user.UserRoleName) Middleware {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			user, err := util.GetAuthenticatedUser(r)
 			if err != nil {
-				response.Error(w, err)
+				resp.Error(w, err)
 				return
 			}
 
 			hasRequiredRole := slices.ContainsFunc(requiredRoles, user.HasRole)
 
 			if !hasRequiredRole {
-				response.Error(w, errors.ForbiddenError("Insufficient permissions", nil))
+				resp.Error(w, errors.ForbiddenError("Insufficient permissions", nil))
 				return
 			}
 
