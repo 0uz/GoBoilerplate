@@ -1,7 +1,7 @@
 # Go Boilerplate Makefile
 
 # Variables
-APP_NAME=goauthboiler
+APP_NAME=goboilerplate
 DOCKER_COMPOSE=docker-compose
 MONITORING_DIR=monitoring
 

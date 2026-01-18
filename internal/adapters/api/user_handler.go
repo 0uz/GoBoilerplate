@@ -3,12 +3,12 @@ package api
 import (
 	"net/http"
 
-	resp "github.com/ouz/goauthboilerplate/pkg/response"
-	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
-	authDto "github.com/ouz/goauthboilerplate/internal/application/auth/dto"
-	userDto "github.com/ouz/goauthboilerplate/internal/application/user/dto"
-	"github.com/ouz/goauthboilerplate/internal/domain/user"
-	"github.com/ouz/goauthboilerplate/pkg/log"
+	"github.com/ouz/goboilerplate/internal/adapters/api/util"
+	authDto "github.com/ouz/goboilerplate/internal/application/auth/dto"
+	userDto "github.com/ouz/goboilerplate/internal/application/user/dto"
+	"github.com/ouz/goboilerplate/internal/domain/user"
+	"github.com/ouz/goboilerplate/pkg/log"
+	resp "github.com/ouz/goboilerplate/pkg/response"
 )
 
 const (

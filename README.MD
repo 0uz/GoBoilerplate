@@ -16,8 +16,8 @@ Production-ready Go boilerplate with JWT authentication, clean architecture, and
 
 ```bash
 # Clone and setup
-git clone https://github.com/ouz/goauthboilerplate.git
-cd goauthboilerplate
+git clone https://github.com/0uz/GoBoilerplate.git
+cd goboilerplate
 
 # Start with Docker
 make run

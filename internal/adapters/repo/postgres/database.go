@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ouz/goauthboilerplate/internal/config"
-	"github.com/ouz/goauthboilerplate/pkg/errors"
-	"github.com/ouz/goauthboilerplate/pkg/log"
+	"github.com/ouz/goboilerplate/internal/config"
+	"github.com/ouz/goboilerplate/pkg/errors"
+	"github.com/ouz/goboilerplate/pkg/log"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/plugin/opentelemetry/tracing"

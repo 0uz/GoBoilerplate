@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/ouz/goauthboilerplate/pkg/errors"
-	"github.com/ouz/goauthboilerplate/pkg/log"
 	"github.com/go-playground/validator/v10"
+	"github.com/ouz/goboilerplate/pkg/errors"
+	"github.com/ouz/goboilerplate/pkg/log"
 )
 
 var Validator = validator.New()

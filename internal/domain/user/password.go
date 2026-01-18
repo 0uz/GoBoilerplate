@@ -1,7 +1,7 @@
 package user
 
 import (
-	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/ouz/goboilerplate/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 )
 

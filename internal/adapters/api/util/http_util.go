@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/ouz/goauthboilerplate/internal/domain/auth"
-	"github.com/ouz/goauthboilerplate/internal/domain/user"
-	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/ouz/goboilerplate/internal/domain/auth"
+	"github.com/ouz/goboilerplate/internal/domain/user"
+	"github.com/ouz/goboilerplate/pkg/errors"
 )
 
 type ContextKey string

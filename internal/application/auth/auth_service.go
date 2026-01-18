@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
-	"github.com/ouz/goauthboilerplate/pkg/cache"
-	"github.com/ouz/goauthboilerplate/internal/config"
-	"github.com/ouz/goauthboilerplate/internal/domain/auth"
-	"github.com/ouz/goauthboilerplate/internal/domain/user"
-	"github.com/ouz/goauthboilerplate/pkg/errors"
-	sharedAuth "github.com/ouz/goauthboilerplate/pkg/auth"
-	"github.com/ouz/goauthboilerplate/pkg/log"
+	"github.com/ouz/goboilerplate/internal/adapters/api/util"
+	"github.com/ouz/goboilerplate/internal/config"
+	"github.com/ouz/goboilerplate/internal/domain/auth"
+	"github.com/ouz/goboilerplate/internal/domain/user"
+	sharedAuth "github.com/ouz/goboilerplate/pkg/auth"
+	"github.com/ouz/goboilerplate/pkg/cache"
+	"github.com/ouz/goboilerplate/pkg/errors"
+	"github.com/ouz/goboilerplate/pkg/log"
 )
 
 type authService struct {

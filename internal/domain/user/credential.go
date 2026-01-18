@@ -3,7 +3,7 @@ package user
 import (
 	"time"
 
-	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/ouz/goboilerplate/pkg/errors"
 	"gorm.io/gorm"
 )
 

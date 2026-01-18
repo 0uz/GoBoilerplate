@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ouz/goauthboilerplate/pkg/log"
 	"github.com/coocood/freecache"
+	"github.com/ouz/goboilerplate/pkg/log"
 )
 
 var (

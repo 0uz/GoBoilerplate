@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	resp "github.com/ouz/goauthboilerplate/pkg/response"
-	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/ouz/goboilerplate/pkg/errors"
+	resp "github.com/ouz/goboilerplate/pkg/response"
 )
 
 const (

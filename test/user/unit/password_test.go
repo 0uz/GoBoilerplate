@@ -3,7 +3,7 @@ package user
 import (
 	"testing"
 
-	"github.com/ouz/goauthboilerplate/internal/domain/user"
+	"github.com/ouz/goboilerplate/internal/domain/user"
 )
 
 func TestNewPassword(t *testing.T) {

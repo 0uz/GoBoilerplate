@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/ouz/goauthboilerplate/internal/domain/user"
+	"github.com/ouz/goboilerplate/internal/domain/user"
 )
 
 func TestNewUserRole(t *testing.T) {

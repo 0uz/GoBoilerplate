@@ -1,4 +1,4 @@
-module github.com/ouz/goauthboilerplate
+module github.com/ouz/goboilerplate
 
 go 1.25
 

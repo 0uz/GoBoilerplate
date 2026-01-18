@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	vo "github.com/ouz/goauthboilerplate/internal/domain/shared"
-	"github.com/ouz/goauthboilerplate/pkg/errors"
+	vo "github.com/ouz/goboilerplate/internal/domain/shared"
+	"github.com/ouz/goboilerplate/pkg/errors"
 	"gorm.io/gorm"
 )
 

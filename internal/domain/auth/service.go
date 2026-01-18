@@ -3,7 +3,7 @@ package auth
 import (
 	"context"
 
-	"github.com/ouz/goauthboilerplate/internal/domain/user"
+	"github.com/ouz/goboilerplate/internal/domain/user"
 )
 
 type AuthService interface {

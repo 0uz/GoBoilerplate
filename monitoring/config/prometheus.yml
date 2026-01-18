@@ -8,5 +8,5 @@ scrape_configs:
     scrape_interval: 10s
   - job_name: 'go-boilerplate'
     static_configs:
-      - targets: ['goauthboiler:8080']
+      - targets: ['goboilerplate:8080']
     scrape_interval: 10s

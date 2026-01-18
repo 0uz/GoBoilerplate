@@ -11,7 +11,7 @@ receivers:
     collection_interval: 10s
     
   postgresql:
-    endpoint: "goauthboiler-postgres:5432"
+    endpoint: "goboilerplate-postgres:5432"
     username: app
     password: "123456"
     databases:

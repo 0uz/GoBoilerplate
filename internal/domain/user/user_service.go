@@ -3,7 +3,7 @@ package user
 import (
 	"context"
 
-	auth "github.com/ouz/goauthboilerplate/internal/application/auth/dto"
+	auth "github.com/ouz/goboilerplate/internal/application/auth/dto"
 )
 
 type UserService interface {

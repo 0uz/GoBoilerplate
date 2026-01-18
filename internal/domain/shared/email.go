@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/ouz/goboilerplate/pkg/errors"
 )
 
 type Email struct {

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ouz/goauthboilerplate/pkg/errors"
-	"github.com/ouz/goauthboilerplate/pkg/log"
-	"github.com/ouz/goauthboilerplate/pkg/stream"
+	"github.com/ouz/goboilerplate/pkg/errors"
+	"github.com/ouz/goboilerplate/pkg/log"
+	"github.com/ouz/goboilerplate/pkg/stream"
 	"github.com/redis/go-redis/v9"
 )
 

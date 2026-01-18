@@ -3,12 +3,12 @@ package observability
 import (
 	"context"
 
-	redisCache "github.com/ouz/goauthboilerplate/pkg/cache/redis"
-	sharedconfig "github.com/ouz/goauthboilerplate/pkg/config"
-	"github.com/ouz/goauthboilerplate/pkg/log"
-	sharedotel "github.com/ouz/goauthboilerplate/pkg/otel"
-	"github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres"
-	"github.com/ouz/goauthboilerplate/internal/config"
+	"github.com/ouz/goboilerplate/internal/adapters/repo/postgres"
+	"github.com/ouz/goboilerplate/internal/config"
+	redisCache "github.com/ouz/goboilerplate/pkg/cache/redis"
+	sharedconfig "github.com/ouz/goboilerplate/pkg/config"
+	"github.com/ouz/goboilerplate/pkg/log"
+	sharedotel "github.com/ouz/goboilerplate/pkg/otel"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )

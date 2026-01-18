@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"github.com/ouz/goauthboilerplate/pkg/log"
+	"github.com/ouz/goboilerplate/pkg/log"
 )
 
 func Recovery(logger *log.Logger) Middleware {

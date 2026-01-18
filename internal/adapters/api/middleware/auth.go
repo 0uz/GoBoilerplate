@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	resp "github.com/ouz/goauthboilerplate/pkg/response"
-	"github.com/ouz/goauthboilerplate/internal/adapters/api/util"
-	"github.com/ouz/goauthboilerplate/internal/domain/auth"
-	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/ouz/goboilerplate/internal/adapters/api/util"
+	"github.com/ouz/goboilerplate/internal/domain/auth"
+	"github.com/ouz/goboilerplate/pkg/errors"
+	resp "github.com/ouz/goboilerplate/pkg/response"
 )
 
 const (

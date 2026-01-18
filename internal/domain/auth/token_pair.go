@@ -2,9 +2,9 @@ package auth
 
 import (
 	"github.com/google/uuid"
-	"github.com/ouz/goauthboilerplate/internal/config"
-	"github.com/ouz/goauthboilerplate/pkg/auth"
-	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/ouz/goboilerplate/internal/config"
+	"github.com/ouz/goboilerplate/pkg/auth"
+	"github.com/ouz/goboilerplate/pkg/errors"
 )
 
 type TokenPair struct {

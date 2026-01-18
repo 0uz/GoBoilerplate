@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/ouz/goauthboilerplate/pkg/auth"
-	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/ouz/goboilerplate/pkg/auth"
+	"github.com/ouz/goboilerplate/pkg/errors"
 )
 
 type Token struct {

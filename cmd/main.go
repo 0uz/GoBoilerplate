@@ -16,21 +16,21 @@ import (
 
 	errs "errors"
 
-	"github.com/ouz/goauthboilerplate/internal/adapters/api"
-	"github.com/ouz/goauthboilerplate/internal/adapters/api/middleware"
-	resp "github.com/ouz/goauthboilerplate/pkg/response"
-	redisCache "github.com/ouz/goauthboilerplate/pkg/cache/redis"
-	"github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres"
-	"github.com/ouz/goauthboilerplate/internal/observability"
-	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/ouz/goboilerplate/internal/adapters/api"
+	"github.com/ouz/goboilerplate/internal/adapters/api/middleware"
+	"github.com/ouz/goboilerplate/internal/adapters/repo/postgres"
+	"github.com/ouz/goboilerplate/internal/observability"
+	redisCache "github.com/ouz/goboilerplate/pkg/cache/redis"
+	"github.com/ouz/goboilerplate/pkg/errors"
+	resp "github.com/ouz/goboilerplate/pkg/response"
 
-	repoAuth "github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres/auth"
-	repoUser "github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres/user"
+	repoAuth "github.com/ouz/goboilerplate/internal/adapters/repo/postgres/auth"
+	repoUser "github.com/ouz/goboilerplate/internal/adapters/repo/postgres/user"
 
-	"github.com/ouz/goauthboilerplate/internal/application/auth"
-	"github.com/ouz/goauthboilerplate/internal/config"
-	"github.com/ouz/goauthboilerplate/internal/application/user"
-	"github.com/ouz/goauthboilerplate/pkg/log"
+	"github.com/ouz/goboilerplate/internal/application/auth"
+	"github.com/ouz/goboilerplate/internal/application/user"
+	"github.com/ouz/goboilerplate/internal/config"
+	"github.com/ouz/goboilerplate/pkg/log"
 	"gorm.io/gorm"
 )
 

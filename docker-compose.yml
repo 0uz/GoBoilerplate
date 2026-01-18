@@ -1,7 +1,7 @@
 services:
   app:
     build: .
-    container_name: goauthboiler
+    container_name: goboilerplate
     ports:
       - "8080:8080"
     depends_on:
@@ -23,7 +23,7 @@ services:
 
   pgdb:
     image: postgres:18
-    container_name: goauthboiler-postgres
+    container_name: goboilerplate-postgres
     environment:
       POSTGRES_USER: ${PG_DB_USER}
       POSTGRES_PASSWORD: ${PG_DB_PASSWORD}
@@ -43,7 +43,7 @@ services:
 
   valkey:
     image: valkey/valkey:9.0.0
-    container_name: goauthboiler-valkey
+    container_name: goboilerplate-valkey
     ports:
       - "6379:6379"
     command: valkey-server

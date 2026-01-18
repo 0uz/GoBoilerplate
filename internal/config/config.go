@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	pkgconfig "github.com/ouz/goauthboilerplate/pkg/config"
-	"github.com/ouz/goauthboilerplate/pkg/errors"
+	pkgconfig "github.com/ouz/goboilerplate/pkg/config"
+	"github.com/ouz/goboilerplate/pkg/errors"
 )
 
 const (

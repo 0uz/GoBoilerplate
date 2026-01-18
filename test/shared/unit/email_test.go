@@ -3,7 +3,7 @@ package shared
 import (
 	"testing"
 
-	"github.com/ouz/goauthboilerplate/internal/domain/shared"
+	"github.com/ouz/goboilerplate/internal/domain/shared"
 )
 
 func TestNewEmail(t *testing.T) {

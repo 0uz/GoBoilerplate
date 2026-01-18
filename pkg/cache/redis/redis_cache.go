@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ouz/goauthboilerplate/pkg/cache"
-	"github.com/ouz/goauthboilerplate/pkg/errors"
-	"github.com/ouz/goauthboilerplate/pkg/log"
+	"github.com/ouz/goboilerplate/pkg/cache"
+	"github.com/ouz/goboilerplate/pkg/errors"
+	"github.com/ouz/goboilerplate/pkg/log"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 )

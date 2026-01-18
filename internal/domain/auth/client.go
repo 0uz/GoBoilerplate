@@ -1,8 +1,9 @@
 package auth
 
 import (
-	"github.com/ouz/goauthboilerplate/pkg/auth"
 	"time"
+
+	"github.com/ouz/goboilerplate/pkg/auth"
 )
 
 type Client struct {

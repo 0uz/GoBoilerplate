@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ouz/goauthboilerplate/pkg/cache"
-	"github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres"
-	authDto "github.com/ouz/goauthboilerplate/internal/application/auth/dto"
+	"github.com/ouz/goboilerplate/internal/adapters/repo/postgres"
+	authDto "github.com/ouz/goboilerplate/internal/application/auth/dto"
+	"github.com/ouz/goboilerplate/pkg/cache"
 
-	"github.com/ouz/goauthboilerplate/internal/domain/shared"
-	"github.com/ouz/goauthboilerplate/internal/domain/user"
-	"github.com/ouz/goauthboilerplate/pkg/errors"
-	"github.com/ouz/goauthboilerplate/pkg/log"
+	"github.com/ouz/goboilerplate/internal/domain/shared"
+	"github.com/ouz/goboilerplate/internal/domain/user"
+	"github.com/ouz/goboilerplate/pkg/errors"
+	"github.com/ouz/goboilerplate/pkg/log"
 )
 
 const (

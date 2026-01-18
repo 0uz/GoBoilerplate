@@ -3,9 +3,9 @@ package user
 import (
 	"context"
 
-	"github.com/ouz/goauthboilerplate/internal/adapters/repo/postgres"
-	"github.com/ouz/goauthboilerplate/internal/domain/user"
-	"github.com/ouz/goauthboilerplate/pkg/errors"
+	"github.com/ouz/goboilerplate/internal/adapters/repo/postgres"
+	"github.com/ouz/goboilerplate/internal/domain/user"
+	"github.com/ouz/goboilerplate/pkg/errors"
 	"gorm.io/gorm"
 )
 

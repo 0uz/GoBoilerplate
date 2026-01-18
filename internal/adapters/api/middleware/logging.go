@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ouz/goauthboilerplate/pkg/log"
+	"github.com/ouz/goboilerplate/pkg/log"
 )
 
 func Logging(logger *log.Logger) Middleware {
