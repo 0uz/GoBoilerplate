@@ -45,15 +45,25 @@ type Repository interface {
 }
 ```
 
-## Application Layer
+## Service Layer (Application)
 
-Services orchestrate domain logic with DTOs for input/output:
+All business logic lives here:
+
+- **All business rules** - validation, authorization, workflows
+- **Access repository via interface** - never concrete implementation
+- **Transaction management** - coordinate here, not in handler/repo
+- **No HTTP knowledge** - no http.Request, http.ResponseWriter, status codes
+- **Multi-repo coordination** - orchestrate when working with multiple repos
+- **Domain-focused** - design for domain rules, not database schema
 
 ```go
-// ❌ BAD - returning domain entity directly to handler
-func (s *UserService) GetUser(id string) (*domain.User, error)
+// ❌ BAD - HTTP knowledge in service
+func (s *UserService) GetUser(w http.ResponseWriter, id string) error
 
-// ✅ GOOD - use DTOs for application boundaries
+// ❌ BAD - no context
+func (s *UserService) GetUser(id string) (*dto.UserResponse, error)
+
+// ✅ GOOD - domain-focused, context-aware
 func (s *UserService) GetUser(ctx context.Context, id string) (*dto.UserResponse, error) {
     user, err := s.repo.FindByID(ctx, id)
     if err != nil {
@@ -61,19 +71,45 @@ func (s *UserService) GetUser(ctx context.Context, id string) (*dto.UserResponse
     }
     return dto.NewUserResponse(user), nil
 }
+
+// ✅ GOOD - transaction in service
+func (s *OrderService) CreateOrder(ctx context.Context, req dto.CreateOrderRequest) error {
+    return s.txManager.WithTransaction(ctx, func(ctx context.Context) error {
+        order := domain.NewOrder(req.UserID, req.Items)
+        if err := s.orderRepo.Save(ctx, order); err != nil {
+            return err
+        }
+        return s.inventoryRepo.DecrementStock(ctx, req.Items)
+    })
+}
 ```
 
-## HTTP Handlers (Adapters)
+## Handler Layer
 
-Handlers should be thin - delegate to application services:
+Handlers are thin - only request/response transformation:
+
+- **No business logic** - delegate to service
+- **Never call repository directly** - always through service
+- **Basic validation only** - complex validation in service
+- **Forward context as-is** - `r.Context()`
+- **DTO ↔ Domain conversion** - handler responsibility
+- **Always return DTO** - never return raw `map[string]any`
+- **No response body?** - return only status code
+- **Shared DTO caution** - when editing a DTO used by multiple endpoints, don't break others
 
 ```go
-// ❌ BAD - business logic in handler
+// ❌ BAD - returning map
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-    // validation, business rules, DB queries here...
+    user, _ := h.userService.GetUser(r.Context(), id)
+    response.JSON(w, http.StatusOK, map[string]any{"user": user})
 }
 
-// ✅ GOOD - handler delegates to service
+// ❌ BAD - calling repository directly
+func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+    user, _ := h.userRepo.FindByID(r.Context(), id)
+}
+
+// ✅ GOOD - delegate to service, return DTO
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
     id := r.PathValue("id")
     
@@ -85,19 +121,41 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
     
     response.JSON(w, http.StatusOK, user)
 }
+
+// ✅ GOOD - no body, just status
+func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+    if err := h.userService.Delete(r.Context(), id); err != nil {
+        response.Error(w, err)
+        return
+    }
+    w.WriteHeader(http.StatusNoContent)
+}
 ```
 
-## Repository Implementation
+## Repository Layer
 
-Implement domain interfaces in adapters:
+Data access only - no business logic:
+
+- **Implements domain interfaces** - defined in domain layer
+- **No business rules** - only CRUD and queries
+- **Domain ↔ DB model conversion** - map between domain entities and DB structures
+- **Query optimization** - indexes, eager loading, query tuning here
+- **Context required** - always use `ctx` for DB operations
 
 ```go
-// internal/adapters/repo/postgres/user/user_repository.go
-type UserRepository struct {
-    db *gorm.DB
+// ❌ BAD - business logic in repository
+func (r *UserRepository) CreateUser(ctx context.Context, u *domain.User) error {
+    if u.Email == "" {
+        return errors.New("email required") // business rule!
+    }
+    return r.db.WithContext(ctx).Create(u).Error
 }
 
-// Implements domain.UserRepository
+// ✅ GOOD - data access only
+func (r *UserRepository) Save(ctx context.Context, u *domain.User) error {
+    return r.db.WithContext(ctx).Create(u).Error
+}
+
 func (r *UserRepository) FindByID(ctx context.Context, id string) (*domain.User, error) {
     var user domain.User
     if err := r.db.WithContext(ctx).First(&user, "id = ?", id).Error; err != nil {
@@ -215,3 +273,67 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 - `Warn` - recoverable issues, degraded functionality
 - `Info` - significant business events (user created, payment processed)
 - `Debug` - only for active troubleshooting, remove after
+
+## Enums
+
+All enum constants must be UPPERCASE with underscores:
+
+```go
+// ❌ BAD
+const (
+    RoleAdmin = "admin"
+    roleUser  = "user"
+)
+
+// ✅ GOOD
+const (
+    ROLE_ADMIN = "admin"
+    ROLE_USER  = "user"
+)
+
+type Status string
+const (
+    STATUS_PENDING   Status = "pending"
+    STATUS_CONFIRMED Status = "confirmed"
+)
+```
+
+## Custom Errors
+
+All custom errors must wrap shared error definitions from `pkg/errors`:
+
+```go
+// ❌ BAD - standalone error
+var ErrUserNotFound = errors.New("user not found")
+
+// ✅ GOOD - wrap shared errors
+import sharedErr "myapp/pkg/errors"
+
+var ErrUserNotFound = sharedErr.NewNotFoundError("user not found")
+```
+
+## General Rules
+
+- **context.Context everywhere** - first parameter in all layer methods
+- **Clean error messages** - meaningful, actionable errors at all layers
+- **Testability first** - design for testing from the start
+- **Single Responsibility** - each layer/function does one thing
+- **No code duplication** - extract helper functions
+- **Centralized config** - all config in `internal/config` or `pkg/config`
+- **Interface for consumer** - define interfaces only when needed
+
+## Commit Messages
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/) (Google Release Please):
+
+```
+<type>(<scope>): <description>
+
+feat(auth): add JWT refresh token support
+fix(user): handle duplicate email validation
+refactor(repo): extract common query builder
+docs(api): update authentication endpoints
+chore(deps): bump go version to 1.22
+```
+
+Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`
